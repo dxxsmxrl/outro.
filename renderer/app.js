@@ -22,6 +22,7 @@ let syncUnsub = null, roomDataUnsub = null;
 let roomsUnsub = null, browserSyncUnsub = null;
 let typingTimer = null, typingUnsub = null, queueUnsub = null;
 let notifsUnsub = null;
+let commandUnsub = null;
 let unreadNotifs = 0;
 let isHost = false;
 let ignoreSyncUntil = 0; // timestamp до которого игнорируем входящий sync
@@ -513,8 +514,8 @@ on('btn-add-to-queue', 'click', () => {
 
 // ===== ENTER ROOM =====
 function enterRoom(room) {
-  [messagesUnsub, participantsUnsub, syncUnsub, roomDataUnsub, browserSyncUnsub, typingUnsub, queueUnsub].forEach(u => u?.());
-  messagesUnsub = participantsUnsub = syncUnsub = roomDataUnsub = browserSyncUnsub = typingUnsub = queueUnsub = null;
+  [messagesUnsub, participantsUnsub, syncUnsub, roomDataUnsub, browserSyncUnsub, typingUnsub, queueUnsub, commandUnsub].forEach(u => u?.());
+  messagesUnsub = participantsUnsub = syncUnsub = roomDataUnsub = browserSyncUnsub = typingUnsub = queueUnsub = commandUnsub = null;
   clearInterval(posTimer);
   if (ssStream) { ssStream.getTracks().forEach(t => t.stop()); ssStream = null; }
 
@@ -601,10 +602,30 @@ function enterRoom(room) {
   // Порог расхождения: 1 секунда.
   syncUnsub = onValue(ref(db, `rooms/${room.id}/sync`), snap => {
     const data = snap.val();
-    if (!data || isHost) return; // хост не применяет чужой sync
-    if (Date.now() < ignoreSyncUntil) return; // только что сами написали — игнорируем
+    if (!data || isHost) return;
+    if (Date.now() < ignoreSyncUntil) return;
     applySync(data);
   });
+
+  // Commands from guests — host listens and applies to player
+  if (commandUnsub) { commandUnsub(); commandUnsub = null; }
+  if (isHost) {
+    commandUnsub = onValue(ref(db, `rooms/${room.id}/command`), snap => {
+      const cmd = snap.val();
+      if (!cmd || !cmd.action) return;
+      // Ignore old commands (older than 3 seconds)
+      if (Date.now() - (cmd.ts || 0) > 3000) return;
+      const wv = $('main-webview');
+      if (!wv || wv.style.display === 'none') return;
+      if (cmd.action === 'pause') {
+        wv.executeJavaScript('document.querySelector("video")?.pause()').catch(() => {});
+      } else if (cmd.action === 'play') {
+        wv.executeJavaScript('document.querySelector("video")?.play()').catch(() => {});
+      } else if (cmd.action === 'seek' && cmd.position !== undefined) {
+        wv.executeJavaScript(`(function(){var v=document.querySelector('video');if(v)v.currentTime=${cmd.position};})();`).catch(() => {});
+      }
+    });
+  }
 
   if (isHost) {
     // Хост — постоянно читаем плеер и пишем в Firebase
@@ -642,6 +663,7 @@ function enterRoom(room) {
 
   subscribeQueue();
   updateViewer();
+
   screen('room');
 }
 
@@ -712,12 +734,70 @@ function updateViewer() {
 
 async function onWebviewReady() {
   if (!currentRoom) return;
-  // Гость: применяем последний sync после загрузки
   if (!isHost) {
+    // Apply last sync state
     const snap = await get(ref(db, `rooms/${currentRoom.id}/sync`));
     const data = snap.val();
     if (data) setTimeout(() => applySync(data), 2000);
+
+    // Inject listener — when guest presses pause/play on YouTube, send command to host
+    setTimeout(() => {
+      const wv = $('main-webview');
+      if (!wv) return;
+      wv.executeJavaScript(`
+        (function() {
+          if (window.__outro_listener) return;
+          window.__outro_listener = true;
+          document.addEventListener('click', function(e) {
+            var btn = e.target.closest('.ytp-play-button, button[aria-label*="Pause"], button[aria-label*="Play"], button[aria-label*="пауз"], button[aria-label*="воспр"]');
+            if (!btn) return;
+            // Small delay to let YouTube update video state
+            setTimeout(function() {
+              var v = document.querySelector('video');
+              if (!v) return;
+              window.__outro_sendState && window.__outro_sendState(v.paused ? 'pause' : 'play', v.currentTime);
+            }, 100);
+          }, true);
+          document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space' || e.code === 'KeyK') {
+              setTimeout(function() {
+                var v = document.querySelector('video');
+                if (!v) return;
+                window.__outro_sendState && window.__outro_sendState(v.paused ? 'pause' : 'play', v.currentTime);
+              }, 100);
+            }
+          });
+        })();
+      `).catch(() => {});
+    }, 3000);
   }
+}
+
+// Called from injected script context via executeJavaScript polling
+function startGuestEventPoll() {
+  if (isHost) return;
+  // Poll guest player state and send commands when it changes
+  let lastPaused = null;
+  setInterval(async () => {
+    if (!currentRoom || isHost) return;
+    const wv = $('main-webview');
+    if (!wv || wv.style.display === 'none') return;
+    try {
+      const state = await wv.executeJavaScript(`
+        (function() {
+          var v = document.querySelector('video');
+          if (!v) return null;
+          return { paused: v.paused, t: v.currentTime };
+        })()
+      `);
+      if (!state) return;
+      if (lastPaused === null) { lastPaused = state.paused; return; }
+      if (state.paused !== lastPaused) {
+        lastPaused = state.paused;
+        await sendCommand(state.paused ? 'pause' : 'play', { position: state.t });
+      }
+    } catch {}
+  }, 500);
 }
 
 // ===== APPLY SYNC (только для гостей) =====
@@ -824,8 +904,8 @@ function leaveRoom() {
     remove(ref(db, `rooms/${currentRoom.id}/participants/${user.uid}`));
     set(ref(db, `rooms/${currentRoom.id}/typing/${user.uid}`), { name: myName, active: false, ts: Date.now() });
   }
-  [messagesUnsub, participantsUnsub, syncUnsub, roomDataUnsub, browserSyncUnsub, typingUnsub, queueUnsub].forEach(u => u?.());
-  messagesUnsub = participantsUnsub = syncUnsub = roomDataUnsub = browserSyncUnsub = typingUnsub = queueUnsub = null;
+  [messagesUnsub, participantsUnsub, syncUnsub, roomDataUnsub, browserSyncUnsub, typingUnsub, queueUnsub, commandUnsub].forEach(u => u?.());
+  messagesUnsub = participantsUnsub = syncUnsub = roomDataUnsub = browserSyncUnsub = typingUnsub = queueUnsub = commandUnsub = null;
   if (ssStream) { ssStream.getTracks().forEach(t => t.stop()); ssStream = null; }
   const wv = $('main-webview');
   if (wv) { wv.setAttribute('src', 'about:blank'); wv.style.display = 'none'; viewerSrc = ''; }
@@ -879,19 +959,33 @@ async function applyChange(videoId, title, source, url) {
 
   const fieldUpdates = { source: src, title: title || currentRoom.title };
 
+  // Use a single update call with undefined to remove fields
+  // Firebase removes keys that are explicitly set to undefined in multi-path update
   if (src === 'browser') {
     isBrowserHost = true;
-    await update(roomRef, fieldUpdates);
-    await remove(ref(db, `rooms/${currentRoom.id}/videoId`));
-    await remove(ref(db, `rooms/${currentRoom.id}/url`));
+    const updates = {};
+    updates[`rooms/${currentRoom.id}/source`] = src;
+    updates[`rooms/${currentRoom.id}/title`] = title || currentRoom.title;
+    updates[`rooms/${currentRoom.id}/videoId`] = null;
+    updates[`rooms/${currentRoom.id}/url`] = null;
+    const { update: rootUpdate } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    await rootUpdate(ref(db, '/'), updates);
   } else if (videoId) {
-    fieldUpdates.videoId = videoId;
-    await update(roomRef, fieldUpdates);
-    await remove(ref(db, `rooms/${currentRoom.id}/url`));
+    const updates = {};
+    updates[`rooms/${currentRoom.id}/source`] = src;
+    updates[`rooms/${currentRoom.id}/title`] = title || currentRoom.title;
+    updates[`rooms/${currentRoom.id}/videoId`] = videoId;
+    updates[`rooms/${currentRoom.id}/url`] = null;
+    const { update: rootUpdate } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    await rootUpdate(ref(db, '/'), updates);
   } else if (url) {
-    fieldUpdates.url = url.startsWith('http') ? url : `https://${url}`;
-    await update(roomRef, fieldUpdates);
-    await remove(ref(db, `rooms/${currentRoom.id}/videoId`));
+    const updates = {};
+    updates[`rooms/${currentRoom.id}/source`] = src;
+    updates[`rooms/${currentRoom.id}/title`] = title || currentRoom.title;
+    updates[`rooms/${currentRoom.id}/url`] = url.startsWith('http') ? url : `https://${url}`;
+    updates[`rooms/${currentRoom.id}/videoId`] = null;
+    const { update: rootUpdate } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    await rootUpdate(ref(db, '/'), updates);
   } else {
     await update(roomRef, fieldUpdates);
   }
