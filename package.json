@@ -17,7 +17,13 @@
     "directories": { "output": "dist" },
     "files": ["main.js", "preload.js", "renderer/**/*"],
     "win": { "target": "nsis", "icon": "assets/icon.ico" },
-    "mac": { "target": "dmg", "icon": "assets/icon.png" }
+    "mac": {
+      "target": {
+        "target": "dmg",
+        "arch": "universal"
+      },
+      "icon": "assets/icon.png"
+    }
   },
   "dependencies": {
     "firebase": "^10.14.1"
