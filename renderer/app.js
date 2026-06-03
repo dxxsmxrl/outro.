@@ -77,7 +77,7 @@ function applyTheme(t) {
   document.body.classList.remove('light', 'monke');
   if (t === 'light') document.body.classList.add('light');
   if (t === 'monke') document.body.classList.add('monke');
-  txt('btn-theme', '');
+  
 }
 on('btn-theme', 'click', () => {
   const idx = themes.indexOf(theme);
@@ -154,6 +154,14 @@ function initApp() {
   loadFriends();
   loadIncomingRequests();
   subscribeNotifications();
+  loadStats();
+}
+
+function loadStats() {
+  if (!user) return;
+  onValue(ref(db, `users/${user.uid}/roomsCreated`), snap => {
+    txt('stat-rooms', snap.val() || 0);
+  });
 }
 
 function updateProfileUI() {
@@ -382,6 +390,9 @@ on('btn-do-quick-create', 'click', async () => {
   const nr = await push(ref(db, 'rooms'), roomData);
   closeModal();
   $('quick-title-input').value = ''; $('quick-link-input').value = '';
+  // Increment rooms created counter
+  const rcSnap = await get(ref(db, `users/${user.uid}/roomsCreated`));
+  await set(ref(db, `users/${user.uid}/roomsCreated`), (rcSnap.val() || 0) + 1);
   enterRoom({ id: nr.key, ...roomData });
 });
 

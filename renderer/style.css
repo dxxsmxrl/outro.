@@ -47,23 +47,23 @@
 }
 
 .monke {
-  /* Old money — like a private members club */
-  --bg:      #f2ede4;
-  --bg2:     #ebe5da;
-  --bg3:     #e2dbd0;
-  --bg4:     #d8d0c4;
-  --bg5:     #cdc4b6;
-  --fg:      #1c1510;
-  --fg2:     #5a4a38;
-  --fg3:     #a89880;
-  --fg4:     #d0c8bc;
-  --border:  #d8d0c4;
-  --border2: #c8bfb2;
-  --border3: #b0a594;
-  --accent:  #1c1510;
-  --red:     #8b2c2c;
-  --green:   #2c5a2c;
-  --blue:    #2c3e6e;
+  /* Old money dark — espresso, leather, worn paper */
+  --bg:      #1a1208;
+  --bg2:     #221a0e;
+  --bg3:     #2c2214;
+  --bg4:     #362a1a;
+  --bg5:     #403220;
+  --fg:      #e8ddd0;
+  --fg2:     #a08870;
+  --fg3:     #5a4838;
+  --fg4:     #342818;
+  --border:  #2e2418;
+  --border2: #3c3020;
+  --border3: #50402c;
+  --accent:  #c8a878;
+  --red:     #a84040;
+  --green:   #486040;
+  --blue:    #405878;
   --sans:    'Cormorant Garamond', Georgia, serif;
   --mono:    'Geist Mono', monospace;
 }
