@@ -22,16 +22,14 @@ let syncUnsub = null, roomDataUnsub = null;
 let roomsUnsub = null, browserSyncUnsub = null;
 let typingTimer = null, typingUnsub = null, queueUnsub = null;
 let notifsUnsub = null;
-let commandUnsub = null;
 let unreadNotifs = 0;
 let isHost = false;
-let ignoreSyncUntil = 0; // timestamp до которого игнорируем входящий sync
+let ignoreSyncUntil = 0;
 
 // ===== DOM HELPERS =====
 const $ = id => document.getElementById(id);
 const on = (id, ev, fn) => $(id)?.addEventListener(ev, fn);
 const txt = (id, v) => { const e = $(id); if (e) e.textContent = v; };
-
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function escA(s) { return String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
@@ -72,18 +70,13 @@ on('btn-close', 'click', () => window.electronAPI?.close());
 
 // ===== THEME =====
 const themes = ['dark', 'light', 'monke'];
-const themeLabels = { dark: '', light: '', warm: '' };
 function applyTheme(t) {
   theme = t;
   document.body.classList.remove('light', 'monke');
   if (t === 'light') document.body.classList.add('light');
   if (t === 'monke') document.body.classList.add('monke');
-  
 }
-on('btn-theme', 'click', () => {
-  const idx = themes.indexOf(theme);
-  applyTheme(themes[(idx + 1) % themes.length]);
-});
+on('btn-theme', 'click', () => applyTheme(themes[(themes.indexOf(theme) + 1) % themes.length]));
 
 // ===== AUTH =====
 onAuthStateChanged(auth, async u => {
@@ -96,12 +89,8 @@ onAuthStateChanged(auth, async u => {
     await set(ref(db, `users/${u.uid}/online`), true);
     if (!data.name) await set(ref(db, `users/${u.uid}/name`), myName);
     if (!data.email) await set(ref(db, `users/${u.uid}/email`), u.email);
-    initApp();
-    screen('main');
-  } else {
-    user = null;
-    screen('onboarding');
-  }
+    initApp(); screen('main');
+  } else { user = null; screen('onboarding'); }
 });
 
 let isLogin = true;
@@ -148,21 +137,15 @@ on('btn-logout-item', 'click', async () => {
   await signOut(auth);
 });
 
-// ===== INIT APP =====
+// ===== INIT =====
 function initApp() {
-  updateProfileUI();
-  loadRooms();
-  loadFriends();
-  loadIncomingRequests();
-  subscribeNotifications();
-  loadStats();
+  updateProfileUI(); loadRooms(); loadFriends();
+  loadIncomingRequests(); subscribeNotifications(); loadStats();
 }
 
 function loadStats() {
   if (!user) return;
-  onValue(ref(db, `users/${user.uid}/roomsCreated`), snap => {
-    txt('stat-rooms', snap.val() || 0);
-  });
+  onValue(ref(db, `users/${user.uid}/roomsCreated`), snap => txt('stat-rooms', snap.val() || 0));
 }
 
 function updateProfileUI() {
@@ -170,44 +153,33 @@ function updateProfileUI() {
   txt('profile-avatar-letter', myName[0]?.toUpperCase() || '?');
   txt('sidebar-avatar', myName[0]?.toUpperCase() || '?');
   $('account-name-input').value = myName;
-  if (myAvatar) {
-    setAvatarImg('profile-avatar-img', myAvatar);
-    setAvatarImg('sidebar-avatar-img', myAvatar);
-  }
+  if (myAvatar) { setAvatarImg('profile-avatar-img', myAvatar); setAvatarImg('sidebar-avatar-img', myAvatar); }
 }
 
 function setAvatarImg(elId, dataUrl) {
-  const el = $(elId);
-  if (!el) return;
+  const el = $(elId); if (!el) return;
   if (dataUrl) { el.style.backgroundImage = `url(${dataUrl})`; el.style.display = ''; }
   else el.style.display = 'none';
 }
 
-// ===== AVATAR UPLOAD =====
-on('sidebar-avatar-wrap', 'click', () => { tab('profile'); });
-on('sidebar-avatar', 'click', () => { tab('profile'); });
-on('sidebar-avatar-img', 'click', () => { tab('profile'); });
+on('sidebar-avatar-wrap', 'click', () => tab('profile'));
+on('sidebar-avatar', 'click', () => tab('profile'));
+on('sidebar-avatar-img', 'click', () => tab('profile'));
 on('btn-edit-avatar', 'click', e => { e.stopPropagation(); $('profile-avatar-input')?.click(); });
 ['avatar-file-input', 'profile-avatar-input'].forEach(id => {
   on(id, 'change', async e => {
-    const file = e.target.files[0];
-    if (!file || !user) return;
+    const file = e.target.files[0]; if (!file || !user) return;
     const reader = new FileReader();
     reader.onload = async ev => {
-      const dataUrl = ev.target.result;
-      myAvatar = dataUrl;
+      const dataUrl = ev.target.result; myAvatar = dataUrl;
       await set(ref(db, `users/${user.uid}/avatar`), dataUrl);
-      setAvatarImg('profile-avatar-img', dataUrl);
-      setAvatarImg('sidebar-avatar-img', dataUrl);
+      setAvatarImg('profile-avatar-img', dataUrl); setAvatarImg('sidebar-avatar-img', dataUrl);
     };
     reader.readAsDataURL(file);
   });
 });
 
-// ===== NAV =====
-document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
-  btn.addEventListener('click', () => tab(btn.dataset.tab));
-});
+document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => btn.addEventListener('click', () => tab(btn.dataset.tab)));
 
 // ===== NOTIFICATIONS =====
 function subscribeNotifications() {
@@ -215,15 +187,10 @@ function subscribeNotifications() {
   if (notifsUnsub) notifsUnsub();
   notifsUnsub = onValue(ref(db, `users/${user.uid}/notifications`), snap => {
     const data = snap.val();
-    const notifs = data
-      ? Object.entries(data).map(([id,v]) => ({id,...v})).sort((a,b) => (b.ts||0)-(a.ts||0))
-      : [];
+    const notifs = data ? Object.entries(data).map(([id,v]) => ({id,...v})).sort((a,b) => (b.ts||0)-(a.ts||0)) : [];
     unreadNotifs = notifs.filter(n => !n.read).length;
     const badge = $('notifs-badge');
-    if (badge) {
-      badge.style.display = unreadNotifs > 0 ? '' : 'none';
-      badge.textContent = unreadNotifs > 9 ? '9+' : unreadNotifs || '';
-    }
+    if (badge) { badge.style.display = unreadNotifs > 0 ? '' : 'none'; badge.textContent = unreadNotifs > 9 ? '9+' : unreadNotifs || ''; }
     renderNotifications(notifs);
   });
 }
@@ -231,12 +198,9 @@ function subscribeNotifications() {
 async function markNotifsRead() {
   if (!user) return;
   const snap = await get(ref(db, `users/${user.uid}/notifications`));
-  const data = snap.val();
-  if (!data) return;
+  const data = snap.val(); if (!data) return;
   const updates = {};
-  Object.entries(data).forEach(([id, v]) => {
-    if (!v.read) updates[`users/${user.uid}/notifications/${id}/read`] = true;
-  });
+  Object.entries(data).forEach(([id, v]) => { if (!v.read) updates[`users/${user.uid}/notifications/${id}/read`] = true; });
   if (Object.keys(updates).length) {
     const { update } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
     await update(ref(db, '/'), updates);
@@ -244,15 +208,10 @@ async function markNotifsRead() {
 }
 
 function renderNotifications(notifs) {
-  const el = $('notifs-list');
-  if (!el) return;
-  if (!notifs.length) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-text">No notifications</div></div>';
-    return;
-  }
+  const el = $('notifs-list'); if (!el) return;
+  if (!notifs.length) { el.innerHTML = '<div class="empty-state"><div class="empty-text">No notifications</div></div>'; return; }
   el.innerHTML = notifs.map(n => {
     const icons = { friend_request: '♦', room_invite: '▶', watching: '●', system: '○' };
-    const icon = icons[n.type] || '◎';
     const unreadDot = !n.read ? '<span style="width:6px;height:6px;border-radius:50%;background:var(--fg);flex-shrink:0;margin-left:auto"></span>' : '';
     let actionBtn = '';
     if (n.type === 'friend_request' && n.fromUid) {
@@ -262,21 +221,17 @@ function renderNotifications(notifs) {
       </div>`;
     }
     if (n.type === 'room_invite' && n.roomId) {
-      actionBtn = `<div style="margin-top:8px">
-        <button class="btn-accept" data-notif-join="${n.roomId}" data-notif-id="${n.id}">Join room</button>
-      </div>`;
+      actionBtn = `<div style="margin-top:8px"><button class="btn-accept" data-notif-join="${n.roomId}" data-notif-id="${n.id}">Join room</button></div>`;
     }
     return `<div class="notif-row ${n.read ? '' : 'notif-unread'}" data-nid="${n.id}">
-      <div class="notif-icon">${icon}</div>
+      <div class="notif-icon">${icons[n.type] || '○'}</div>
       <div style="flex:1;min-width:0">
         <div class="notif-text">${esc(n.text||'')}</div>
         <div class="notif-time">${timeAgo(n.ts)}</div>
         ${actionBtn}
-      </div>
-      ${unreadDot}
+      </div>${unreadDot}
     </div>`;
   }).join('');
-
   el.querySelectorAll('[data-notif-accept]').forEach(btn => {
     btn.addEventListener('click', async () => {
       await acceptReq(btn.dataset.uid, btn.dataset.name);
@@ -291,8 +246,7 @@ function renderNotifications(notifs) {
   });
   el.querySelectorAll('[data-notif-join]').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const roomId = btn.dataset.notifJoin;
-      const nid = btn.dataset.notifId;
+      const roomId = btn.dataset.notifJoin; const nid = btn.dataset.notifId;
       await set(ref(db, `users/${user.uid}/notifications/${nid}/read`), true);
       const snap = await get(ref(db, `rooms/${roomId}`));
       const roomData = snap.val();
@@ -309,9 +263,7 @@ async function sendNotification(toUid, notif) {
 function timeAgo(ts) {
   if (!ts) return '';
   const diff = Date.now() - ts;
-  const m = Math.floor(diff / 60000);
-  const h = Math.floor(diff / 3600000);
-  const d = Math.floor(diff / 86400000);
+  const m = Math.floor(diff / 60000), h = Math.floor(diff / 3600000), d = Math.floor(diff / 86400000);
   if (m < 1) return 'just now';
   if (m < 60) return `${m}m ago`;
   if (h < 24) return `${h}h ago`;
@@ -322,36 +274,29 @@ function timeAgo(ts) {
 function loadRooms() {
   if (roomsUnsub) roomsUnsub();
   roomsUnsub = onValue(ref(db, 'rooms'), snap => {
-    const data = snap.val();
-    const list = $('rooms-list');
+    const data = snap.val(); const list = $('rooms-list');
     if (!data) {
       txt('rooms-count', '0');
       list.innerHTML = `<div class="empty-state"><div class="empty-text">No active rooms</div><button class="btn-link" id="btn-cf">Create the first one →</button></div>`;
-      on('btn-cf', 'click', () => openModal('modal-quick-create'));
-      return;
+      on('btn-cf', 'click', () => openModal('modal-quick-create')); return;
     }
     const rooms = Object.entries(data).map(([id,v]) => ({id,...v}))
-      .filter(r => r.privacy === 'public')
-      .sort((a,b) => (b.createdAt||0)-(a.createdAt||0));
+      .filter(r => r.privacy === 'public').sort((a,b) => (b.createdAt||0)-(a.createdAt||0));
     txt('rooms-count', rooms.length);
     list.innerHTML = rooms.map(r => {
       const thumb = r.source === 'youtube' && r.videoId
         ? `<img src="https://img.youtube.com/vi/${r.videoId}/mqdefault.jpg" style="width:100%;height:100%;object-fit:cover;border-radius:6px;" />`
-        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--fg3);font-size:10px;font-family:var(--mono);letter-spacing:1px">${(r.source||'—').toUpperCase()}</div>`;
-      const syncPos = r.sync?.position ? Math.floor(r.sync.position / 60) + ':' + String(Math.floor(r.sync.position % 60)).padStart(2,'0') : '';
+        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--fg3);font-size:10px;font-family:var(--mono)">${(r.source||'—').toUpperCase()}</div>`;
+      const syncPos = r.sync?.position ? Math.floor(r.sync.position/60)+':'+String(Math.floor(r.sync.position%60)).padStart(2,'0') : '';
       return `<div class="room-card" data-id="${r.id}">
         <div class="room-card-thumb"><div class="room-card-source">${(r.source||'').toUpperCase()}</div>${thumb}</div>
         <div class="room-card-info">
           <div class="room-card-title">${esc(r.title||'—')}</div>
-          <div class="room-card-meta">${esc(r.host||'').toUpperCase()} · ${(r.privacy||'').toUpperCase()}${syncPos ? ' · ' + syncPos : ''}</div>
-        </div>
-      </div>`;
+          <div class="room-card-meta">${esc(r.host||'').toUpperCase()} · ${(r.privacy||'').toUpperCase()}${syncPos?' · '+syncPos:''}</div>
+        </div></div>`;
     }).join('');
     list.querySelectorAll('.room-card').forEach(card => {
-      card.addEventListener('click', () => {
-        const room = rooms.find(r => r.id === card.dataset.id);
-        if (room) enterRoom(room);
-      });
+      card.addEventListener('click', () => { const room = rooms.find(r => r.id === card.dataset.id); if (room) enterRoom(room); });
     });
   });
 }
@@ -365,7 +310,7 @@ document.querySelectorAll('.platform-btn').forEach(btn => {
     if (quickSource === 'youtube') { openModal('modal-yt-search'); return; }
     $('quick-link-section').style.display = (quickSource === 'twitch' || quickSource === 'file') ? '' : 'none';
     if (quickSource === 'twitch') { txt('quick-link-label', 'Channel link'); $('quick-link-input').placeholder = 'twitch.tv/channel'; }
-    if (quickSource === 'file') { txt('quick-link-label', 'ПРЯМАЯ ССЫЛКА НА MP4'); $('quick-link-input').placeholder = 'https://...'; }
+    if (quickSource === 'file') { txt('quick-link-label', 'Direct MP4 link'); $('quick-link-input').placeholder = 'https://...'; }
     openModal('modal-quick-create');
   });
 });
@@ -385,14 +330,11 @@ on('btn-do-quick-create', 'click', async () => {
   const title = $('quick-title-input').value.trim() || 'New room';
   const roomData = { title, source: quickSource, host: myName, hostUid: user.uid, privacy: quickPrivacy, createdAt: Date.now() };
   if (quickSource === 'twitch' || quickSource === 'file') {
-    const url = $('quick-link-input').value.trim();
-    if (!url) return;
+    const url = $('quick-link-input').value.trim(); if (!url) return;
     roomData.url = url.startsWith('http') ? url : `https://${url}`;
   }
   const nr = await push(ref(db, 'rooms'), roomData);
-  closeModal();
-  $('quick-title-input').value = ''; $('quick-link-input').value = '';
-  // Increment rooms created counter
+  closeModal(); $('quick-title-input').value = ''; $('quick-link-input').value = '';
   const rcSnap = await get(ref(db, `users/${user.uid}/roomsCreated`));
   await set(ref(db, `users/${user.uid}/roomsCreated`), (rcSnap.val() || 0) + 1);
   enterRoom({ id: nr.key, ...roomData });
@@ -405,7 +347,7 @@ on('yt-search-input', 'keydown', e => { if (e.key === 'Enter') ytSearch($('yt-se
 on('yt-search-input', 'input', () => { $('btn-clear-yt').style.display = $('yt-search-input').value ? '' : 'none'; });
 on('btn-clear-yt', 'click', () => {
   $('yt-search-input').value = ''; $('btn-clear-yt').style.display = 'none';
-  $('yt-search-results').innerHTML = '<div class="empty-state"><div class="empty-text">ВВЕДИТЕ ЗАПРОС</div></div>';
+  $('yt-search-results').innerHTML = '<div class="empty-state"><div class="empty-text">Enter a search query</div></div>';
 });
 
 async function ytSearch(query, forChange = false) {
@@ -415,20 +357,16 @@ async function ytSearch(query, forChange = false) {
   try {
     const r = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=20&key=${YT_KEY}`);
     const d = await r.json();
-    if (!d.items?.length) { el.innerHTML = '<div class="empty-state"><div class="empty-text">НИЧЕГО НЕ НАЙДЕНО</div></div>'; return; }
+    if (!d.items?.length) { el.innerHTML = '<div class="empty-state"><div class="empty-text">Nothing found</div></div>'; return; }
     el.innerHTML = d.items.map(i => `
       <div class="yt-result" data-vid="${escA(i.id.videoId)}" data-title="${escA(i.snippet.title)}">
         <img class="yt-thumb" src="${i.snippet.thumbnails.medium.url}" loading="lazy" />
         <div><div class="yt-title">${esc(i.snippet.title)}</div><div class="yt-channel">${esc(i.snippet.channelTitle).toUpperCase()}</div></div>
-        ${forChange ? `<button class="btn-sm" style="flex-shrink:0;margin-left:auto" data-queue-vid="${escA(i.id.videoId)}" data-queue-title="${escA(i.snippet.title)}">+ В ОЧЕРЕДЬ</button>` : ''}
+        ${forChange ? `<button class="btn-sm" style="flex-shrink:0;margin-left:auto" data-queue-vid="${escA(i.id.videoId)}" data-queue-title="${escA(i.snippet.title)}">+ Queue</button>` : ''}
       </div>`).join('');
     if (forChange) {
       el.querySelectorAll('[data-queue-vid]').forEach(btn => {
-        btn.addEventListener('click', e => {
-          e.stopPropagation();
-          addToQueue(btn.dataset.queueVid, btn.dataset.queueTitle);
-          btn.textContent = '✓'; btn.disabled = true;
-        });
+        btn.addEventListener('click', e => { e.stopPropagation(); addToQueue(btn.dataset.queueVid, btn.dataset.queueTitle); btn.textContent = '✓'; btn.disabled = true; });
       });
     }
     el.querySelectorAll('.yt-result').forEach(row => {
@@ -438,24 +376,22 @@ async function ytSearch(query, forChange = false) {
         else createWithVideo(row.dataset.vid, row.dataset.title);
       });
     });
-  } catch { el.innerHTML = '<div class="empty-state"><div class="empty-text">ОШИБКА ПОИСКА</div></div>'; }
+  } catch { el.innerHTML = '<div class="empty-state"><div class="empty-text">Search error</div></div>'; }
 }
 
 async function createWithVideo(videoId, title) {
   if (!user) return;
-  await stopWebviewAudio($('main-webview')); viewerSrc = '';
-  await stopWebviewAudio($('browser-webview'));
   const roomData = { title, source: 'youtube', videoId, host: myName, hostUid: user.uid, privacy: quickPrivacy, createdAt: Date.now() };
   const nr = await push(ref(db, 'rooms'), roomData);
   closeModal();
   $('yt-search-input').value = '';
-  $('yt-search-results').innerHTML = '<div class="empty-state"><div class="empty-text">ВВЕДИТЕ ЗАПРОС</div></div>';
+  $('yt-search-results').innerHTML = '<div class="empty-state"><div class="empty-text">Enter a search query</div></div>';
   notifyFriendsWatching(title);
+  get(ref(db, `users/${user.uid}/roomsCreated`)).then(s => set(ref(db, `users/${user.uid}/roomsCreated`), (s.val()||0)+1));
   enterRoom({ id: nr.key, ...roomData });
 }
 
 async function notifyFriendsWatching(title) {
-  if (!friends.length) return;
   for (const f of friends) {
     await sendNotification(f.uid, { type: 'watching', text: `${myName} started watching «${title}»`, fromUid: user.uid, fromName: myName });
   }
@@ -473,8 +409,7 @@ async function addToQueue(videoId, title) {
 async function skipVideo() {
   if (!currentRoom) return;
   const snap = await get(ref(db, `rooms/${currentRoom.id}/queue`));
-  const data = snap.val();
-  if (!data) return;
+  const data = snap.val(); if (!data) return;
   const entries = Object.entries(data).sort(([,a],[,b]) => (a.ts||0)-(b.ts||0));
   const [nextKey, next] = entries[0];
   await remove(ref(db, `rooms/${currentRoom.id}/queue/${nextKey}`));
@@ -488,13 +423,11 @@ function subscribeQueue() {
 }
 
 function renderQueue(data) {
-  const el = $('queue-list');
-  if (!el) return;
+  const el = $('queue-list'); if (!el) return;
   const btn = $('btn-skip');
   if (!data) {
-    el.innerHTML = '<div style="color:var(--fg3);font-size:10px;font-family:var(--mono);letter-spacing:1px;padding:8px 0">ОЧЕРЕДЬ ПУСТА</div>';
-    if (btn) btn.style.opacity = '0.4';
-    return;
+    el.innerHTML = '<div style="color:var(--fg3);font-size:9px;font-family:var(--mono);letter-spacing:1px;padding:4px 0;text-transform:uppercase">Empty queue</div>';
+    if (btn) btn.style.opacity = '0.4'; return;
   }
   const entries = Object.entries(data).map(([id,v])=>({id,...v})).sort((a,b)=>(a.ts||0)-(b.ts||0));
   if (btn) btn.style.opacity = entries.length ? '1' : '0.4';
@@ -517,34 +450,34 @@ on('btn-add-to-queue', 'click', () => {
 
 // ===== ENTER ROOM =====
 async function enterRoom(roomInit) {
-  [messagesUnsub, participantsUnsub, syncUnsub, roomDataUnsub, browserSyncUnsub, typingUnsub, queueUnsub, commandUnsub].forEach(u => u?.());
-  messagesUnsub = participantsUnsub = syncUnsub = roomDataUnsub = browserSyncUnsub = typingUnsub = queueUnsub = commandUnsub = null;
+  [messagesUnsub, participantsUnsub, syncUnsub, roomDataUnsub, browserSyncUnsub, typingUnsub, queueUnsub].forEach(u => u?.());
+  messagesUnsub = participantsUnsub = syncUnsub = roomDataUnsub = browserSyncUnsub = typingUnsub = queueUnsub = null;
   clearInterval(posTimer);
   if (ssStream) { ssStream.getTracks().forEach(t => t.stop()); ssStream = null; }
 
   const _wv = $('main-webview'); const _bwv = $('browser-webview');
-  if (_wv) { _wv.style.display = 'none'; }
-  if (_bwv) { _bwv.style.display = 'none'; }
+  if (_wv) _wv.style.display = 'none';
+  if (_bwv) _bwv.style.display = 'none';
   viewerSrc = '';
 
-  // Always fetch fresh room data from Firebase
+  // Always get fresh data
   const freshSnap = await get(ref(db, `rooms/${roomInit.id}`));
   const freshData = freshSnap.val();
   const room = freshData ? { ...freshData, id: roomInit.id } : roomInit;
 
   currentRoom = room;
   isPlaying = false; isBrowserHost = false; lastPos = 0; ignoreSyncUntil = 0;
-  viewerSrc = '';
   isHost = (room.host === myName || room.hostUid === user.uid);
 
   $('btn-delete-room').style.display = isHost ? '' : 'none';
 
+  // Watch room data — trigger viewer update on video change
   roomDataUnsub = onValue(ref(db, `rooms/${room.id}`), snap => {
     const data = snap.val();
     if (!data) { leaveRoom(); return; }
-    const oldVideoId = currentRoom.videoId;
-    const oldUrl = currentRoom.url;
-    const oldSource = currentRoom.source;
+    const oldVideoId = currentRoom?.videoId;
+    const oldUrl = currentRoom?.url;
+    const oldSource = currentRoom?.source;
     currentRoom = { ...data, id: room.id };
     if (currentRoom.videoId !== oldVideoId || currentRoom.url !== oldUrl || currentRoom.source !== oldSource) {
       viewerSrc = ''; isPlaying = false; lastPos = 0;
@@ -567,16 +500,12 @@ async function enterRoom(roomInit) {
       knownMsgIds.add(m.id);
       const el = document.createElement('div');
       el.className = 'chat-msg';
-      el.dataset.msgId = m.id;
       const av = m.userAvatar
         ? `<div class="chat-av chat-av-clickable" data-user="${escA(m.user||'')}" data-uid="${escA(m.userUid||'')}" style="background-image:url(${m.userAvatar});background-size:cover;background-position:center;cursor:pointer"></div>`
         : `<div class="chat-av chat-av-clickable" data-user="${escA(m.user||'')}" data-uid="${escA(m.userUid||'')}" style="cursor:pointer">${(m.user||'?')[0].toUpperCase()}</div>`;
-      const body = buildMsgBody(m);
-      el.innerHTML = `${av}<div><div class="chat-msg-user chat-av-clickable" data-user="${escA(m.user||'')}" data-uid="${escA(m.userUid||'')}" style="cursor:pointer">${esc(m.user||'').toUpperCase()}</div>${body}</div>`;
+      el.innerHTML = `${av}<div><div class="chat-msg-user chat-av-clickable" data-user="${escA(m.user||'')}" data-uid="${escA(m.userUid||'')}" style="cursor:pointer">${esc(m.user||'').toUpperCase()}</div>${buildMsgBody(m)}</div>`;
       attachMsgHandlers(el, m);
-      el.querySelectorAll('.chat-av-clickable').forEach(btn => {
-        btn.addEventListener('click', e => { e.stopPropagation(); openUserProfileByName(btn.dataset.user, btn.dataset.uid); });
-      });
+      el.querySelectorAll('.chat-av-clickable').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); openUserProfileByName(btn.dataset.user, btn.dataset.uid); }));
       container.appendChild(el);
     });
     if (wasAtBottom) container.scrollTop = container.scrollHeight;
@@ -585,9 +514,7 @@ async function enterRoom(roomInit) {
   // Typing
   typingUnsub = onValue(ref(db, `rooms/${room.id}/typing`), snap => {
     const data = snap.val();
-    const typers = data ? Object.entries(data)
-      .filter(([uid, v]) => uid !== user.uid && v.active && (Date.now() - (v.ts||0)) < 4000)
-      .map(([,v]) => v.name) : [];
+    const typers = data ? Object.entries(data).filter(([uid, v]) => uid !== user.uid && v.active && (Date.now()-(v.ts||0))<4000).map(([,v]) => v.name) : [];
     const el = $('typing-indicator');
     if (el) { el.textContent = typers.length ? `${typers.join(', ')} is typing...` : ''; el.style.display = typers.length ? '' : 'none'; }
   });
@@ -597,81 +524,111 @@ async function enterRoom(roomInit) {
   participantsUnsub = onValue(ref(db, `rooms/${room.id}/participants`), snap => {
     const data = snap.val();
     const list = data ? Object.entries(data).map(([uid,v]) => ({uid,...v})) : [];
-    txt('participants-count', list.length);
-    txt('modal-parts-count', list.length);
+    txt('participants-count', list.length); txt('modal-parts-count', list.length);
     $('modal-parts-list').innerHTML = list.map(p => `
       <div class="friend-row" style="cursor:pointer" data-puid="${p.uid}" data-pname="${escA(p.name||'')}">
         <div class="avatar">${(p.name||'?')[0].toUpperCase()}</div>
         <div><div class="friend-name">${esc(p.name||'')}</div>${p.uid===currentRoom.hostUid||p.name===currentRoom.host?'<div class="friend-sub">Host</div>':''}</div>
       </div>`).join('');
-    $('modal-parts-list').querySelectorAll('[data-puid]').forEach(row => {
-      row.addEventListener('click', () => openUserProfileByName(row.dataset.pname, row.dataset.puid));
-    });
+    $('modal-parts-list').querySelectorAll('[data-puid]').forEach(row => row.addEventListener('click', () => openUserProfileByName(row.dataset.pname, row.dataset.puid)));
   });
 
   // ===== SYNC =====
-  // Model: anyone can pause/play/seek — writes to Firebase sync node.
-  // Everyone listens and applies, ignoring their own recent writes.
-  // Host also writes position continuously so guests stay in sync.
+  // RULE: host writes sync every 2s. Everyone else reads and applies.
+  // Anyone can pause/play via syncFirebase() — writes to Firebase with their uid.
+  // Everyone ignores their own writes. Host ignores incoming for 3s after writing.
 
   syncUnsub = onValue(ref(db, `rooms/${room.id}/sync`), snap => {
     const data = snap.val();
     if (!data) return;
-    // Ignore our own writes for 3 seconds
-    if (data.updatedBy === user.uid) return;
-    if (Date.now() < ignoreSyncUntil) return;
+    if (data.updatedBy === user.uid) return; // ignore own writes
+    if (Date.now() < ignoreSyncUntil) return; // ignore if we just acted
     applySync(data);
   });
 
-  // Host continuously writes position to Firebase so guests follow along
   if (isHost) {
+    // Host writes player state every 2s
     posTimer = setInterval(async () => {
       if (!currentRoom) return;
       const wv = $('main-webview');
       if (!wv || wv.style.display === 'none') return;
       try {
-        const result = await wv.executeJavaScript(`
-          (function() {
-            var v = document.querySelector('video');
-            if (!v) return null;
-            return { t: v.currentTime, p: !v.paused, d: v.duration || 0 };
-          })()
-        `);
+        const result = await wv.executeJavaScript('(function(){var v=document.querySelector("video");if(!v)return null;return{t:v.currentTime,p:!v.paused,d:v.duration||0};})()');
         if (!result) return;
-        lastPos = result.t;
-        isPlaying = result.p;
+        lastPos = result.t; isPlaying = result.p;
         await set(ref(db, `rooms/${currentRoom.id}/sync`), {
-          playing: result.p,
-          position: result.t,
-          duration: result.d,
-          ts: Date.now(),
-          updatedBy: user.uid
+          playing: result.p, position: result.t, duration: result.d,
+          ts: Date.now(), updatedBy: user.uid
         });
       } catch {}
     }, 2000);
   } else {
-    // Guest: track local position
+    // Guest: poll own player state — if paused/played, write to Firebase
+    let lastPaused = null;
     posTimer = setInterval(async () => {
       if (!currentRoom) return;
-      const pos = await getVideoPosition();
-      if (pos !== null) lastPos = pos;
-    }, 2000);
+      const wv = $('main-webview');
+      if (!wv || wv.style.display === 'none') return;
+      try {
+        const state = await wv.executeJavaScript('(function(){var v=document.querySelector("video");if(!v)return null;return{paused:v.paused,t:v.currentTime};})()');
+        if (!state) return;
+        lastPos = state.t;
+        if (lastPaused === null) { lastPaused = state.paused; return; }
+        if (state.paused !== lastPaused) {
+          lastPaused = state.paused;
+          await syncFirebase(!state.paused, state.t);
+        }
+      } catch {}
+    }, 500);
   }
 
   subscribeQueue();
   updateViewer();
-
   screen('room');
+}
+
+// ===== syncFirebase — anyone writes pause/play =====
+async function syncFirebase(playing, pos) {
+  if (!currentRoom || !user) return;
+  const position = pos !== undefined ? pos : lastPos;
+  isPlaying = playing;
+  ignoreSyncUntil = Date.now() + 4000; // ignore incoming for 4s
+  // Apply locally immediately
+  const wv = $('main-webview');
+  if (wv && wv.style.display !== 'none') {
+    try {
+      if (playing) wv.executeJavaScript('(function(){var v=document.querySelector("video");if(v)v.play().catch(function(){});})()').catch(()=>{});
+      else wv.executeJavaScript('(function(){var v=document.querySelector("video");if(v)v.pause();})()').catch(()=>{});
+    } catch {}
+  }
+  await set(ref(db, `rooms/${currentRoom.id}/sync`), {
+    playing, position, ts: Date.now(), updatedBy: user.uid
+  });
+}
+
+// ===== applySync — apply others' sync state =====
+function applySync(data) {
+  if (!data) return;
+  isPlaying = data.playing;
+  const wv = $('main-webview');
+  if (!wv || wv.style.display === 'none') return;
+  let targetPos = data.position || 0;
+  if (data.playing && data.ts) targetPos += (Date.now() - data.ts) / 1000;
+  try {
+    if (data.playing) {
+      wv.executeJavaScript(`(function(){var v=document.querySelector('video');if(!v)return;if(Math.abs(v.currentTime-${targetPos})>3)v.currentTime=${targetPos};if(v.paused)v.play().catch(function(){});})();`).catch(()=>{});
+    } else {
+      wv.executeJavaScript(`(function(){var v=document.querySelector('video');if(!v)return;if(!v.paused)v.pause();if(Math.abs(v.currentTime-${targetPos})>3)v.currentTime=${targetPos};})();`).catch(()=>{});
+    }
+    lastPos = targetPos;
+  } catch {}
 }
 
 // ===== GET VIDEO POSITION =====
 async function getVideoPosition() {
   const wv = $('main-webview');
   if (wv && wv.style.display !== 'none') {
-    try {
-      const t = await wv.executeJavaScript('(document.querySelector("video") || {}).currentTime || 0');
-      if (typeof t === 'number' && t > 0) return t;
-    } catch {}
+    try { const t = await wv.executeJavaScript('(document.querySelector("video")||{}).currentTime||0'); if (typeof t === 'number' && t > 0) return t; } catch {}
   }
   return null;
 }
@@ -680,253 +637,73 @@ async function getVideoPosition() {
 async function openUserProfileByName(name, uid) {
   if (uid === user.uid || name === myName) { if (activeModal) closeModal(); tab('profile'); screen('main'); return; }
   let profileData = friends.find(f => f.uid === uid || f.name === name);
-  if (!profileData && uid) {
-    const snap = await get(ref(db, `users/${uid}`));
-    if (snap.val()) profileData = { uid, ...snap.val() };
-  }
-  if (!profileData && name) {
-    const snap = await get(ref(db, 'users'));
-    const all = snap.val();
-    if (all) { const found = Object.entries(all).find(([, v]) => v.name === name); if (found) profileData = { uid: found[0], ...found[1] }; }
-  }
+  if (!profileData && uid) { const snap = await get(ref(db, `users/${uid}`)); if (snap.val()) profileData = { uid, ...snap.val() }; }
+  if (!profileData && name) { const snap = await get(ref(db, 'users')); const all = snap.val(); if (all) { const found = Object.entries(all).find(([,v]) => v.name === name); if (found) profileData = { uid: found[0], ...found[1] }; } }
   if (profileData) openFriendProfile(profileData);
 }
 
 // ===== STOP WEBVIEW AUDIO =====
 async function stopWebviewAudio(webview) {
   if (!webview) return;
-  try {
-    await webview.executeJavaScript(`
-      document.querySelectorAll('video,audio').forEach(function(m){try{m.pause();}catch(e){}});
-    `);
-  } catch {}
-  // about:blank — единственный надёжный способ убить аудио
-  // ERR_ABORTED это нормально, не крашит приложение
-  try { webview.setAttribute('src', 'about:blank'); } catch {}
+  try { await webview.executeJavaScript('document.querySelectorAll("video,audio").forEach(function(m){try{m.pause();m.volume=0;}catch(e){}});'); } catch {}
 }
 
-
+// ===== UPDATE VIEWER =====
 async function updateViewer() {
   if (!currentRoom) return;
-  const wv = $('main-webview');
-  const bwv = $('browser-webview');
-  const ph = $('viewer-placeholder');
-  const bb = $('browser-bar');
-  const pc = $('player-controls');
-  const ssv = $('ss-video');
-
+  const wv = $('main-webview'), bwv = $('browser-webview'), ph = $('viewer-placeholder');
+  const bb = $('browser-bar'), pc = $('player-controls'), ssv = $('ss-video');
   wv.style.display = 'none'; bwv.style.display = 'none'; ph.style.display = 'none';
   if (bb) bb.style.display = 'none';
   if (pc) pc.style.display = 'none';
   if (ssv) ssv.style.display = 'none';
-  const csBtn = $('btn-close-source');
 
   if (currentRoom.source === 'youtube' && currentRoom.videoId) {
-    await stopWebviewAudio(bwv); bwv.style.display = 'none';
+    await stopWebviewAudio(bwv);
     const src = `https://www.youtube.com/watch?v=${currentRoom.videoId}`;
-    if (viewerSrc !== src) {
-      wv.setAttribute('src', src); viewerSrc = src;
-      wv.addEventListener('dom-ready', onWebviewReady, { once: true });
-    }
+    if (viewerSrc !== src) { wv.setAttribute('src', src); viewerSrc = src; wv.addEventListener('dom-ready', onWebviewReady, { once: true }); }
     wv.style.display = '';
-    if (csBtn) csBtn.style.display = '';
   } else if (currentRoom.source === 'browser') {
     await stopWebviewAudio(wv); wv.style.display = 'none'; viewerSrc = '';
-    if (!bwv.getAttribute('src') || bwv.getAttribute('src') === 'about:blank') {
-      bwv.setAttribute('src', 'https://www.google.com');
-      $('browser-address').value = 'https://www.google.com';
-    }
-    bwv.style.display = '';
-    if (bb) bb.style.display = 'flex';
-    if (csBtn) csBtn.style.display = 'none'; // у браузера своя кнопка закрыть
-    setupBrowserSync();
+    if (!bwv.getAttribute('src') || bwv.getAttribute('src') === 'about:blank') { bwv.setAttribute('src', 'https://www.google.com'); $('browser-address').value = 'https://www.google.com'; }
+    bwv.style.display = ''; if (bb) bb.style.display = 'flex'; setupBrowserSync();
   } else if (currentRoom.url) {
-    await stopWebviewAudio(bwv); bwv.style.display = 'none';
+    await stopWebviewAudio(bwv);
     const src = currentRoom.url;
     if (viewerSrc !== src) { wv.setAttribute('src', src); viewerSrc = src; }
-    wv.style.display = '';
-    if (pc) pc.style.display = '';
-    if (csBtn) csBtn.style.display = '';
+    wv.style.display = ''; if (pc) pc.style.display = '';
   } else {
-    await stopWebviewAudio(wv); await stopWebviewAudio(bwv);
-    viewerSrc = '';
-    ph.style.display = '';
-    if (csBtn) csBtn.style.display = 'none';
+    await stopWebviewAudio(wv); await stopWebviewAudio(bwv); viewerSrc = ''; ph.style.display = '';
   }
 }
 
+// ===== ON WEBVIEW READY =====
 async function onWebviewReady() {
   if (!currentRoom) return;
   if (!isHost) {
-    // Fetch fresh sync and apply immediately with short delay for player to load
+    // Apply sync state on load
     const snap = await get(ref(db, `rooms/${currentRoom.id}/sync`));
     const data = snap.val();
     if (data) {
-      // Try at 1.5s and again at 4s to make sure it sticks
       setTimeout(() => applySync(data), 1500);
-      setTimeout(async () => {
-        const snap2 = await get(ref(db, `rooms/${currentRoom.id}/sync`));
-        const d2 = snap2.val();
-        if (d2) applySync(d2);
-      }, 4000);
+      setTimeout(async () => { const s = await get(ref(db, `rooms/${currentRoom.id}/sync`)); if (s.val()) applySync(s.val()); }, 4000);
     }
-
-    // Inject listener — when guest presses pause/play on YouTube, send command to host
-    setTimeout(() => {
-      const wv = $('main-webview');
-      if (!wv) return;
-      wv.executeJavaScript(`
-        (function() {
-          if (window.__outro_listener) return;
-          window.__outro_listener = true;
-          document.addEventListener('click', function(e) {
-            var btn = e.target.closest('.ytp-play-button, button[aria-label*="Pause"], button[aria-label*="Play"], button[aria-label*="пауз"], button[aria-label*="воспр"]');
-            if (!btn) return;
-            // Small delay to let YouTube update video state
-            setTimeout(function() {
-              var v = document.querySelector('video');
-              if (!v) return;
-              window.__outro_sendState && window.__outro_sendState(v.paused ? 'pause' : 'play', v.currentTime);
-            }, 100);
-          }, true);
-          document.addEventListener('keydown', function(e) {
-            if (e.code === 'Space' || e.code === 'KeyK') {
-              setTimeout(function() {
-                var v = document.querySelector('video');
-                if (!v) return;
-                window.__outro_sendState && window.__outro_sendState(v.paused ? 'pause' : 'play', v.currentTime);
-              }, 100);
-            }
-          });
-        })();
-      `).catch(() => {});
-    }, 3000);
   }
-}
-
-// Called from injected script context via executeJavaScript polling
-function startGuestEventPoll() {
-  if (isHost) return;
-  // Poll guest player state and send commands when it changes
-  let lastPaused = null;
-  setInterval(async () => {
-    if (!currentRoom || isHost) return;
-    const wv = $('main-webview');
-    if (!wv || wv.style.display === 'none') return;
-    try {
-      const state = await wv.executeJavaScript(`
-        (function() {
-          var v = document.querySelector('video');
-          if (!v) return null;
-          return { paused: v.paused, t: v.currentTime };
-        })()
-      `);
-      if (!state) return;
-      if (lastPaused === null) { lastPaused = state.paused; return; }
-      if (state.paused !== lastPaused) {
-        lastPaused = state.paused;
-        await syncFirebase(!state.paused, state.t);
-      }
-    } catch {}
-  }, 500);
-}
-
-// ===== SYNC FIREBASE — anyone calls this on pause/play/seek =====
-async function syncFirebase(playing, pos) {
-  if (!currentRoom || !user) return;
-  const position = pos !== undefined ? pos : lastPos;
-  isPlaying = playing;
-  // Apply locally immediately
-  const wv = $('main-webview');
-  if (wv && wv.style.display !== 'none') {
-    try {
-      if (playing) {
-        wv.executeJavaScript(`(function(){var v=document.querySelector('video');if(v){v.play().catch(function(){});}})();`).catch(()=>{});
-      } else {
-        wv.executeJavaScript(`(function(){var v=document.querySelector('video');if(v){v.pause();}})();`).catch(()=>{});
-      }
-    } catch {}
-  }
-  // Write to Firebase — others will read and apply
-  await set(ref(db, `rooms/${currentRoom.id}/sync`), {
-    playing,
-    position,
-    ts: Date.now(),
-    updatedBy: user.uid
-  });
-}
-
-// ===== APPLY SYNC (для всех кроме того кто написал) =====
-function applySync(data) {
-  if (!data) return;
-  isPlaying = data.playing;
-  const wv = $('main-webview');
-  if (!wv || wv.style.display === 'none') return;
-
-  // Compensate for network delay
-  let targetPos = data.position || 0;
-  if (data.playing && data.ts) {
-    targetPos += (Date.now() - data.ts) / 1000;
-  }
-
-  try {
-    if (data.playing) {
-      wv.executeJavaScript(`
-        (function(){
-          var v = document.querySelector('video');
-          if (!v) return;
-          var t = ${targetPos};
-          if (Math.abs(v.currentTime - t) > 3) v.currentTime = t;
-          if (v.paused) v.play().catch(function(){});
-        })();
-      `).catch(()=>{});
-    } else {
-      wv.executeJavaScript(`
-        (function(){
-          var v = document.querySelector('video');
-          if (!v) return;
-          var t = ${targetPos};
-          if (!v.paused) v.pause();
-          if (Math.abs(v.currentTime - t) > 3) v.currentTime = t;
-        })();
-      `).catch(()=>{});
-    }
-    lastPos = targetPos;
-  } catch {}
 }
 
 // ===== BROWSER =====
 function setupBrowserSync() {
   if (browserSyncUnsub) { browserSyncUnsub(); browserSyncUnsub = null; }
   if (!currentRoom) return;
-
-  // Guest: listen for URL changes from Firebase and apply to webview
-  // Host: skip applying (ignoreBrowserSync prevents host from being redirected by own writes)
   browserSyncUnsub = onValue(ref(db, `rooms/${currentRoom.id}/browserUrl`), snap => {
-    const data = snap.val();
-    if (!data) return;
-    // Don't apply if we just wrote this ourselves (host or whoever navigated)
-    if (ignoreBrowserSync) return;
+    const data = snap.val(); if (!data || ignoreBrowserSync) return;
     const bwv = $('browser-webview');
-    if (bwv && data.url && bwv.getAttribute('src') !== data.url) {
-      bwv.setAttribute('src', data.url);
-      $('browser-address').value = data.url;
-    }
+    if (bwv && data.url && bwv.getAttribute('src') !== data.url) { bwv.setAttribute('src', data.url); $('browser-address').value = data.url; }
   });
-
   const bwv = $('browser-webview');
   if (bwv) {
-    // Remove any previously attached handlers to avoid duplicates
-    if (bwv.__navHandler) {
-      bwv.removeEventListener('did-navigate', bwv.__navHandler);
-      bwv.removeEventListener('did-navigate-in-page', bwv.__navHandler);
-    }
-    // Always sync navigation — whoever navigates (host typing URL, clicking links) syncs to Firebase.
-    // Guests won't navigate themselves so this is effectively host-only.
-    const navHandler = e => {
-      $('browser-address').value = e.url;
-      if (currentRoom) syncBrowserUrl(e.url);
-    };
+    if (bwv.__navHandler) { bwv.removeEventListener('did-navigate', bwv.__navHandler); bwv.removeEventListener('did-navigate-in-page', bwv.__navHandler); }
+    const navHandler = e => { $('browser-address').value = e.url; if (currentRoom) syncBrowserUrl(e.url); };
     bwv.__navHandler = navHandler;
     bwv.addEventListener('did-navigate', navHandler);
     bwv.addEventListener('did-navigate-in-page', navHandler);
@@ -935,64 +712,33 @@ function setupBrowserSync() {
 
 async function syncBrowserUrl(url) {
   if (!currentRoom || !user) return;
-  // Temporarily ignore incoming Firebase updates so we don't apply our own write back to ourselves
-  ignoreBrowserSync = true;
-  setTimeout(() => { ignoreBrowserSync = false; }, 2000);
+  ignoreBrowserSync = true; setTimeout(() => { ignoreBrowserSync = false; }, 2000);
   await set(ref(db, `rooms/${currentRoom.id}/browserUrl`), { url, uid: user.uid, ts: Date.now() });
 }
 
 function navBrowser(input) {
-  let url = input.trim();
-  if (!url) return;
+  let url = input.trim(); if (!url) return;
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     url = url.includes('.') && !url.includes(' ') ? `https://${url}` : `https://www.google.com/search?q=${encodeURIComponent(url)}&gl=us&hl=en`;
   }
-  const bwv = $('browser-webview');
-  bwv.setAttribute('src', url);
-  $('browser-address').value = url;
-  syncBrowserUrl(url);
+  $('browser-webview').setAttribute('src', url); $('browser-address').value = url; syncBrowserUrl(url);
 }
 
 on('btn-browser-go', 'click', () => navBrowser($('browser-address').value));
 on('browser-address', 'keydown', e => { if (e.key === 'Enter') navBrowser($('browser-address').value); });
-on('btn-browser-back', 'click', () => { $('browser-webview')?.goBack?.(); });
-on('btn-browser-forward', 'click', () => { $('browser-webview')?.goForward?.(); });
+on('btn-browser-back', 'click', () => $('browser-webview')?.goBack?.());
+on('btn-browser-forward', 'click', () => $('browser-webview')?.goForward?.());
 on('btn-browser-refresh', 'click', () => $('browser-webview')?.reload?.());
-on('btn-close-source', 'click', () => closeSource());
-
-
-
-async function closeSource() {
-  if (!currentRoom) return;
-  // Паузим и скрываем локально
-  const wv = $('main-webview');
-  const bwv = $('browser-webview');
-  await stopWebviewAudio(wv);
-  await stopWebviewAudio(bwv);
-  if (wv) { wv.setAttribute('src', 'about:blank'); wv.style.display = 'none'; viewerSrc = ''; }
-  if (bwv) { bwv.setAttribute('src', 'about:blank'); bwv.style.display = 'none'; }
-  const bb = $('browser-bar'); if (bb) bb.style.display = 'none';
-  const pc = $('player-controls'); if (pc) pc.style.display = 'none';
-  $('viewer-placeholder').style.display = '';
-  // Пишем в Firebase — у всех участников закроется источник
-  const roomId = currentRoom.id;
-  await set(ref(db, `rooms/${roomId}/source`), 'none');
-  await remove(ref(db, `rooms/${roomId}/videoId`));
-  await remove(ref(db, `rooms/${roomId}/url`));
-  await set(ref(db, `rooms/${roomId}/sync`), { playing: false, position: 0, ts: Date.now() });
-}
 
 // ===== TYPING =====
 on('chat-input', 'input', async () => {
   if (!currentRoom || !user) return;
   await set(ref(db, `rooms/${currentRoom.id}/typing/${user.uid}`), { name: myName, active: true, ts: Date.now() });
   clearTimeout(typingTimer);
-  typingTimer = setTimeout(async () => {
-    if (currentRoom && user) await set(ref(db, `rooms/${currentRoom.id}/typing/${user.uid}`), { name: myName, active: false, ts: Date.now() });
-  }, 3000);
+  typingTimer = setTimeout(async () => { if (currentRoom && user) await set(ref(db, `rooms/${currentRoom.id}/typing/${user.uid}`), { name: myName, active: false, ts: Date.now() }); }, 3000);
 });
 
-// ===== LEAVE / DELETE ROOM =====
+// ===== LEAVE / DELETE =====
 on('btn-leave-room', 'click', leaveRoom);
 function leaveRoom() {
   clearInterval(posTimer); clearTimeout(typingTimer);
@@ -1000,23 +746,20 @@ function leaveRoom() {
     remove(ref(db, `rooms/${currentRoom.id}/participants/${user.uid}`));
     set(ref(db, `rooms/${currentRoom.id}/typing/${user.uid}`), { name: myName, active: false, ts: Date.now() });
   }
-  [messagesUnsub, participantsUnsub, syncUnsub, roomDataUnsub, browserSyncUnsub, typingUnsub, queueUnsub, commandUnsub].forEach(u => u?.());
-  messagesUnsub = participantsUnsub = syncUnsub = roomDataUnsub = browserSyncUnsub = typingUnsub = queueUnsub = commandUnsub = null;
+  [messagesUnsub, participantsUnsub, syncUnsub, roomDataUnsub, browserSyncUnsub, typingUnsub, queueUnsub].forEach(u => u?.());
+  messagesUnsub = participantsUnsub = syncUnsub = roomDataUnsub = browserSyncUnsub = typingUnsub = queueUnsub = null;
   if (ssStream) { ssStream.getTracks().forEach(t => t.stop()); ssStream = null; }
   const wv = $('main-webview');
-  if (wv) { stopWebviewAudio(wv); wv.style.display = 'none'; viewerSrc = ''; }
+  if (wv) { wv.setAttribute('src', 'about:blank'); wv.style.display = 'none'; viewerSrc = ''; }
   const bwv = $('browser-webview');
-  if (bwv) { stopWebviewAudio(bwv); bwv.style.display = 'none'; }
-  currentRoom = null; isPlaying = false; isHost = false;
-  screen('main');
+  if (bwv) { bwv.setAttribute('src', 'about:blank'); bwv.style.display = 'none'; }
+  currentRoom = null; isPlaying = false; isHost = false; screen('main');
 }
 
 on('btn-delete-room', 'click', async () => {
   if (!currentRoom || !user || !isHost) return;
   if (!confirm('Delete this room?')) return;
-  const id = currentRoom.id;
-  leaveRoom();
-  await remove(ref(db, `rooms/${id}`));
+  const id = currentRoom.id; leaveRoom(); await remove(ref(db, `rooms/${id}`));
 });
 
 // ===== CHANGE VIDEO =====
@@ -1049,39 +792,22 @@ async function applyChange(videoId, title, source, url) {
   if (!currentRoom) return;
   const src = source || changeSource;
   const roomId = currentRoom.id;
-
-  // Паузим всё что сейчас играет перед сменой источника
   await stopWebviewAudio($('main-webview')); viewerSrc = '';
   await stopWebviewAudio($('browser-webview'));
-
-  // Write each field individually — no null, no batch update
   await set(ref(db, `rooms/${roomId}/source`), src);
   await set(ref(db, `rooms/${roomId}/title`), title || currentRoom.title);
-
-  if (src === 'browser') {
-    isBrowserHost = true;
-    await remove(ref(db, `rooms/${roomId}/videoId`));
-    await remove(ref(db, `rooms/${roomId}/url`));
-  } else if (videoId) {
-    await set(ref(db, `rooms/${roomId}/videoId`), videoId);
-    await remove(ref(db, `rooms/${roomId}/url`));
-  } else if (url) {
-    await set(ref(db, `rooms/${roomId}/url`), url.startsWith('http') ? url : `https://${url}`);
-    await remove(ref(db, `rooms/${roomId}/videoId`));
-  }
-
-  await set(ref(db, `rooms/${roomId}/sync`), { playing: false, position: 0, ts: Date.now() });
-  isPlaying = false;
-  closeModal();
-  $('change-yt-input').value = '';
-  $('change-yt-results').innerHTML = '';
-  $('change-link-input').value = '';
+  if (src === 'browser') { isBrowserHost = true; await remove(ref(db, `rooms/${roomId}/videoId`)); await remove(ref(db, `rooms/${roomId}/url`)); }
+  else if (videoId) { await set(ref(db, `rooms/${roomId}/videoId`), videoId); await remove(ref(db, `rooms/${roomId}/url`)); }
+  else if (url) { await set(ref(db, `rooms/${roomId}/url`), url.startsWith('http') ? url : `https://${url}`); await remove(ref(db, `rooms/${roomId}/videoId`)); }
+  await set(ref(db, `rooms/${roomId}/sync`), { playing: false, position: 0, ts: Date.now(), updatedBy: user.uid });
+  isPlaying = false; ignoreSyncUntil = Date.now() + 3000;
+  viewerSrc = ''; updateViewer(); closeModal();
+  $('change-yt-input').value = ''; $('change-yt-results').innerHTML = ''; $('change-link-input').value = '';
 }
 
 // ===== SCREENSHARE =====
 on('btn-screenshare', 'click', async () => {
-  const sources = await window.electronAPI?.getSources();
-  if (!sources) return;
+  const sources = await window.electronAPI?.getSources(); if (!sources) return;
   $('ss-sources').innerHTML = sources.map(s => `<div class="ss-item" data-id="${escA(s.id)}"><img class="ss-thumb" src="${s.thumbnail}" /><div class="ss-name">${esc(s.name)}</div></div>`).join('');
   $('ss-sources').querySelectorAll('.ss-item').forEach(el => el.addEventListener('click', () => startScreenshare(el.dataset.id)));
   openModal('modal-screenshare');
@@ -1105,34 +831,26 @@ on('btn-participants', 'click', () => openModal('modal-participants'));
 on('btn-invite', 'click', () => { renderInviteFriends(); openModal('modal-invite'); });
 on('btn-copy-invite', 'click', () => {
   navigator.clipboard.writeText('https://outro-web-znla.vercel.app');
-  txt('btn-copy-invite', 'Copied ✓');
-  setTimeout(() => txt('btn-copy-invite', 'Copy link'), 2000);
+  txt('btn-copy-invite', 'Copied ✓'); setTimeout(() => txt('btn-copy-invite', 'Copy link'), 2000);
 });
 
 function renderInviteFriends() {
-  const el = $('invite-friends-list');
-  if (!el || !currentRoom) return;
+  const el = $('invite-friends-list'); if (!el || !currentRoom) return;
   if (!friends.length) { el.innerHTML = '<div style="color:var(--fg3);font-size:10px;font-family:var(--mono);letter-spacing:1px;padding:8px 0">No friends yet</div>'; return; }
   el.innerHTML = friends.map(f => `
     <div class="friend-row">
       <div class="avatar">${(f.name||'?')[0].toUpperCase()}</div>
       <div style="flex:1"><div class="friend-name">${esc(f.name||'')}</div></div>
-      <button class="btn-sm" data-invite-uid="${f.uid}" data-invite-name="${escA(f.name||'')}">ПРИГЛАСИТЬ</button>
+      <button class="btn-sm" data-invite-uid="${f.uid}" data-invite-name="${escA(f.name||'')}">Invite</button>
     </div>`).join('');
   el.querySelectorAll('[data-invite-uid]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      await sendRoomInvite(btn.dataset.inviteUid, btn.dataset.inviteName);
-      btn.textContent = 'Sent ✓'; btn.disabled = true;
-    });
+    btn.addEventListener('click', async () => { await sendRoomInvite(btn.dataset.inviteUid, btn.dataset.inviteName); btn.textContent = 'Sent ✓'; btn.disabled = true; });
   });
 }
 
 async function sendRoomInvite(toUid, toName) {
   if (!currentRoom || !user) return;
-  await sendNotification(toUid, {
-    type: 'room_invite', text: `${myName} invites you to watch «${currentRoom.title||'видео'}»`,
-    fromUid: user.uid, fromName: myName, roomId: currentRoom.id, roomTitle: currentRoom.title || ''
-  });
+  await sendNotification(toUid, { type: 'room_invite', text: `${myName} invites you to watch «${currentRoom.title||'a video'}»`, fromUid: user.uid, fromName: myName, roomId: currentRoom.id, roomTitle: currentRoom.title || '' });
 }
 
 // ===== CHAT =====
@@ -1140,55 +858,39 @@ on('btn-send', 'click', sendMsg);
 on('chat-input', 'keydown', e => { if (e.key === 'Enter') sendMsg(); });
 
 async function sendMsg() {
-  const msg = $('chat-input').value.trim();
-  if (!msg || !currentRoom || !user) return;
-  $('chat-input').value = '';
-  clearTimeout(typingTimer);
+  const msg = $('chat-input').value.trim(); if (!msg || !currentRoom || !user) return;
+  $('chat-input').value = ''; clearTimeout(typingTimer);
   set(ref(db, `rooms/${currentRoom.id}/typing/${user.uid}`), { name: myName, active: false, ts: Date.now() });
-  await push(ref(db, `rooms/${currentRoom.id}/messages`), {
-    user: myName, userUid: user.uid, userAvatar: myAvatar || null,
-    text: msg, type: 'text', time: serverTimestamp()
-  });
+  await push(ref(db, `rooms/${currentRoom.id}/messages`), { user: myName, userUid: user.uid, userAvatar: myAvatar || null, text: msg, type: 'text', time: serverTimestamp() });
 }
 
 on('btn-send-image', 'click', () => {
-  const inp = document.createElement('input');
-  inp.type = 'file'; inp.accept = 'image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar';
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar';
   inp.onchange = async e => {
-    const file = e.target.files[0];
-    if (!file || !currentRoom) return;
+    const file = e.target.files[0]; if (!file || !currentRoom) return;
     const reader = new FileReader();
     reader.onload = async ev => {
       const dataUrl = ev.target.result;
-      const isImg = file.type.startsWith('image/');
-      const isVid = file.type.startsWith('video/');
-      const isAud = file.type.startsWith('audio/');
-      await push(ref(db, `rooms/${currentRoom.id}/messages`), {
-        user: myName, userUid: user.uid, userAvatar: myAvatar || null,
-        fileUrl: dataUrl, fileName: file.name, fileType: file.type, fileSize: file.size,
-        type: isImg ? 'image' : isVid ? 'video' : isAud ? 'audio' : 'file',
-        time: serverTimestamp()
-      });
+      const isImg = file.type.startsWith('image/'), isVid = file.type.startsWith('video/'), isAud = file.type.startsWith('audio/');
+      await push(ref(db, `rooms/${currentRoom.id}/messages`), { user: myName, userUid: user.uid, userAvatar: myAvatar || null, fileUrl: dataUrl, fileName: file.name, fileType: file.type, fileSize: file.size, type: isImg?'image':isVid?'video':isAud?'audio':'file', time: serverTimestamp() });
     };
     reader.readAsDataURL(file);
   };
   inp.click();
 });
 
-// ===== MSG BODY BUILDER =====
 function buildMsgBody(m) {
-  const type = m.type; const url = m.fileUrl || m.imageUrl || '';
-  const name = m.fileName || 'file'; const size = m.fileSize ? formatSize(m.fileSize) : '';
-  if (type === 'image' && url) return `<div class="msg-img-wrap"><img class="chat-msg-img msg-clickable" src="${url}" data-url="${escA(url)}" data-name="${escA(name)}" /><div class="msg-file-actions"><span class="msg-action-btn" data-open-url="${escA(url)}" data-open-name="${escA(name)}">⊙ открыть</span><span class="msg-action-btn" data-save-url="${escA(url)}" data-save-name="${escA(name)}">⤓ сохранить</span></div></div>`;
-  if (type === 'video' && url) return `<div class="msg-video-wrap"><video class="chat-msg-video msg-clickable" src="${url}" data-url="${escA(url)}" data-name="${escA(name)}" preload="metadata"></video><div class="msg-file-info"><span class="msg-file-name">${esc(name)}</span><span class="msg-file-size">${size}</span></div><div class="msg-file-actions"><span class="msg-action-btn" data-open-url="${escA(url)}" data-open-name="${escA(name)}">⊙ открыть</span><span class="msg-action-btn" data-save-url="${escA(url)}" data-save-name="${escA(name)}">⤓ сохранить</span></div></div>`;
-  if (type === 'audio' && url) return `<div class="msg-audio-wrap"><audio class="chat-msg-audio" src="${url}" controls preload="metadata"></audio><div class="msg-file-actions"><span class="msg-action-btn" data-save-url="${escA(url)}" data-save-name="${escA(name)}">⤓ сохранить</span></div></div>`;
-  if (type === 'file' && url) return `<div class="msg-file-wrap msg-clickable" data-open-url="${escA(url)}" data-open-name="${escA(name)}"><span class="msg-file-icon">${getFileIcon(name)}</span><div class="msg-file-info"><span class="msg-file-name">${esc(name)}</span><span class="msg-file-size">${size}</span></div><div class="msg-file-actions"><span class="msg-action-btn" data-open-url="${escA(url)}" data-open-name="${escA(name)}">⊙ открыть</span><span class="msg-action-btn" data-save-url="${escA(url)}" data-save-name="${escA(name)}">⤓ сохранить</span></div></div>`;
+  const type = m.type, url = m.fileUrl || m.imageUrl || '', name = m.fileName || 'file', size = m.fileSize ? formatSize(m.fileSize) : '';
+  if (type === 'image' && url) return `<div class="msg-img-wrap"><img class="chat-msg-img msg-clickable" src="${url}" data-url="${escA(url)}" data-name="${escA(name)}" /><div class="msg-file-actions"><span class="msg-action-btn" data-open-url="${escA(url)}" data-open-name="${escA(name)}">Open</span><span class="msg-action-btn" data-save-url="${escA(url)}" data-save-name="${escA(name)}">Save</span></div></div>`;
+  if (type === 'video' && url) return `<div class="msg-video-wrap"><video class="chat-msg-video msg-clickable" src="${url}" data-url="${escA(url)}" data-name="${escA(name)}" preload="metadata"></video><div class="msg-file-info"><span class="msg-file-name">${esc(name)}</span><span class="msg-file-size">${size}</span></div><div class="msg-file-actions"><span class="msg-action-btn" data-open-url="${escA(url)}" data-open-name="${escA(name)}">Open</span><span class="msg-action-btn" data-save-url="${escA(url)}" data-save-name="${escA(name)}">Save</span></div></div>`;
+  if (type === 'audio' && url) return `<div class="msg-audio-wrap"><audio class="chat-msg-audio" src="${url}" controls preload="metadata"></audio><div class="msg-file-actions"><span class="msg-action-btn" data-save-url="${escA(url)}" data-save-name="${escA(name)}">Save</span></div></div>`;
+  if (type === 'file' && url) return `<div class="msg-file-wrap msg-clickable" data-open-url="${escA(url)}" data-open-name="${escA(name)}"><span class="msg-file-icon">${getFileIcon(name)}</span><div class="msg-file-info"><span class="msg-file-name">${esc(name)}</span><span class="msg-file-size">${size}</span></div><div class="msg-file-actions"><span class="msg-action-btn" data-open-url="${escA(url)}" data-open-name="${escA(name)}">Open</span><span class="msg-action-btn" data-save-url="${escA(url)}" data-save-name="${escA(name)}">Save</span></div></div>`;
   return `<div class="chat-msg-text">${esc(m.text||'')}</div>`;
 }
 
 function attachMsgHandlers(el, m) {
-  el.querySelectorAll('[data-open-url]').forEach(btn => { btn.addEventListener('click', e => { e.stopPropagation(); openFileOrLightbox(btn.dataset.openUrl, btn.dataset.openName, m.type); }); });
-  el.querySelectorAll('[data-save-url]').forEach(btn => { btn.addEventListener('click', e => { e.stopPropagation(); saveFile(btn.dataset.saveUrl, btn.dataset.saveName); }); });
+  el.querySelectorAll('[data-open-url]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); openFileOrLightbox(btn.dataset.openUrl, btn.dataset.openName, m.type); }));
+  el.querySelectorAll('[data-save-url]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); saveFile(btn.dataset.saveUrl, btn.dataset.saveName); }));
   el.querySelectorAll('.msg-clickable').forEach(item => {
     item.addEventListener('click', () => {
       if (m.type === 'image') openLightbox(item.dataset.url, item.dataset.name);
@@ -1198,14 +900,8 @@ function attachMsgHandlers(el, m) {
   });
 }
 
-function openFileOrLightbox(url, name, type) {
-  if (type === 'image') { openLightbox(url, name); return; }
-  if (window.electronAPI?.openFile) window.electronAPI.openFile({ dataUrl: url, filename: name });
-}
-function saveFile(url, name) {
-  if (window.electronAPI?.saveFile) window.electronAPI.saveFile({ dataUrl: url, filename: name });
-  else { const a = document.createElement('a'); a.href = url; a.download = name || 'file'; a.click(); }
-}
+function openFileOrLightbox(url, name, type) { if (type === 'image') { openLightbox(url, name); return; } if (window.electronAPI?.openFile) window.electronAPI.openFile({ dataUrl: url, filename: name }); }
+function saveFile(url, name) { if (window.electronAPI?.saveFile) window.electronAPI.saveFile({ dataUrl: url, filename: name }); else { const a = document.createElement('a'); a.href = url; a.download = name || 'file'; a.click(); } }
 function openLightbox(url, name) {
   let lb = $('msg-lightbox');
   if (!lb) {
@@ -1259,13 +955,11 @@ function renderFriends() {
     const av = f.avatar ? `<div class="avatar" style="background-image:url(${f.avatar});background-size:cover;background-position:center"></div>` : `<div class="avatar">${(f.name||'?')[0].toUpperCase()}</div>`;
     return `<div class="friend-row" data-uid="${f.uid}">${av}<div><div class="friend-name">${esc(f.name||'')}</div><div class="friend-sub">Friend</div></div><span style="color:var(--fg3)">→</span></div>`;
   }).join('');
-  el.querySelectorAll('.friend-row').forEach(row => {
-    row.addEventListener('click', () => { const f = friends.find(f => f.uid === row.dataset.uid); if (f) openFriendProfile(f); });
-  });
+  el.querySelectorAll('.friend-row').forEach(row => row.addEventListener('click', () => { const f = friends.find(f => f.uid === row.dataset.uid); if (f) openFriendProfile(f); }));
 }
 
 function renderIncoming() {
-  const sec = $('incoming-section'); const list = $('incoming-list');
+  const sec = $('incoming-section'), list = $('incoming-list');
   if (!incomingReqs.length) { sec.style.display = 'none'; return; }
   sec.style.display = ''; txt('requests-count', incomingReqs.length);
   list.innerHTML = incomingReqs.map(r => `
@@ -1273,7 +967,7 @@ function renderIncoming() {
       <div class="avatar">${(r.fromName||'?')[0].toUpperCase()}</div>
       <div style="flex:1"><div class="friend-name">${esc(r.fromName||'')}</div><div class="friend-sub">wants to add you</div></div>
       <div style="display:flex;gap:6px">
-        <button class="btn-accept" data-uid="${r.fromUid}" data-name="${escA(r.fromName)}">ОК</button>
+        <button class="btn-accept" data-uid="${r.fromUid}" data-name="${escA(r.fromName)}">OK</button>
         <button class="btn-sm" data-dec="${r.fromUid}">✕</button>
       </div>
     </div>`).join('');
@@ -1282,8 +976,7 @@ function renderIncoming() {
 }
 
 async function acceptReq(fromUid, fromName) {
-  const snap = await get(ref(db, `users/${fromUid}`));
-  const fromData = snap.val() || {};
+  const snap = await get(ref(db, `users/${fromUid}`)); const fromData = snap.val() || {};
   await set(ref(db, `users/${user.uid}/friends/${fromUid}`), { uid: fromUid, name: fromName, avatar: fromData.avatar || null });
   await set(ref(db, `users/${fromUid}/friends/${user.uid}`), { uid: user.uid, name: myName, avatar: myAvatar || null });
   await remove(ref(db, `users/${user.uid}/friendRequests/incoming/${fromUid}`));
@@ -1296,11 +989,9 @@ on('btn-search-users', 'click', searchUsers);
 on('friends-search-input', 'keydown', e => { if (e.key === 'Enter') searchUsers(); });
 
 async function searchUsers() {
-  const q = $('friends-search-input').value.trim().toLowerCase();
-  if (!q) return;
-  const snap = await get(ref(db, 'users'));
-  const data = snap.val();
-  const sec = $('search-results-section'); const list = $('search-results-list');
+  const q = $('friends-search-input').value.trim().toLowerCase(); if (!q) return;
+  const snap = await get(ref(db, 'users')); const data = snap.val();
+  const sec = $('search-results-section'), list = $('search-results-list');
   if (!data) { sec.style.display = 'none'; return; }
   const results = Object.entries(data).filter(([uid, v]) => uid !== user.uid && v.name?.toLowerCase().includes(q)).map(([uid, v]) => ({ uid, ...v }));
   if (!results.length) { sec.style.display = 'none'; return; }
@@ -1308,10 +999,10 @@ async function searchUsers() {
   list.innerHTML = results.map(u => {
     const isFriend = friends.some(f => f.uid === u.uid);
     const av = u.avatar ? `<div class="avatar" style="background-image:url(${u.avatar});background-size:cover;background-position:center"></div>` : `<div class="avatar">${(u.name||'?')[0].toUpperCase()}</div>`;
-    return `<div class="friend-row" data-uid="${u.uid}">${av}<div style="flex:1"><div class="friend-name">${esc(u.name||'')}</div><div class="friend-sub">${u.friendsCount||0} friends</div></div>${isFriend?'<span style="color:var(--fg3);font-size:9px;font-family:var(--mono);letter-spacing:1px">ДРУГ</span>':`<button class="btn-sm" data-add="${u.uid}" data-aname="${escA(u.name)}">+</button>`}</div>`;
+    return `<div class="friend-row" data-uid="${u.uid}">${av}<div style="flex:1"><div class="friend-name">${esc(u.name||'')}</div><div class="friend-sub">${u.friendsCount||0} friends</div></div>${isFriend?'<span style="color:var(--fg3);font-size:9px;font-family:var(--mono)">Friend</span>':`<button class="btn-sm" data-add="${u.uid}" data-aname="${escA(u.name)}">+</button>`}</div>`;
   }).join('');
-  list.querySelectorAll('[data-add]').forEach(btn => { btn.addEventListener('click', e => { e.stopPropagation(); sendFriendReq(btn.dataset.add, btn.dataset.aname); }); });
-  list.querySelectorAll('.friend-row').forEach(row => { row.addEventListener('click', () => { const u = results.find(r => r.uid === row.dataset.uid); if (u) openFriendProfile(u); }); });
+  list.querySelectorAll('[data-add]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); sendFriendReq(btn.dataset.add, btn.dataset.aname); }));
+  list.querySelectorAll('.friend-row').forEach(row => row.addEventListener('click', () => { const u = results.find(r => r.uid === row.dataset.uid); if (u) openFriendProfile(u); }));
 }
 
 async function sendFriendReq(toUid, toName) {
@@ -1323,42 +1014,33 @@ async function sendFriendReq(toUid, toName) {
 function openFriendProfile(friend) {
   selectedFriend = friend;
   const isFriend = friends.some(f => f.uid === friend.uid);
-  txt('fp-avatar', (friend.name||'?')[0].toUpperCase());
-  txt('fp-name', friend.name || '');
+  txt('fp-avatar', (friend.name||'?')[0].toUpperCase()); txt('fp-name', friend.name || '');
   txt('fp-friends-count', (friend.friendsCount || 0) + ' friends');
-  if (friend.avatar) { $('fp-avatar-img').style.backgroundImage = `url(${friend.avatar})`; $('fp-avatar-img').style.display = ''; }
-  else $('fp-avatar-img').style.display = 'none';
+  if (friend.avatar) { $('fp-avatar-img').style.backgroundImage = `url(${friend.avatar})`; $('fp-avatar-img').style.display = ''; } else $('fp-avatar-img').style.display = 'none';
   $('btn-add-friend').style.display = isFriend ? 'none' : '';
   $('fp-already').style.display = isFriend ? '' : 'none';
-  const invBtn = $('btn-fp-invite-room');
-  if (invBtn) invBtn.style.display = (currentRoom && isFriend) ? '' : 'none';
+  const invBtn = $('btn-fp-invite-room'); if (invBtn) invBtn.style.display = (currentRoom && isFriend) ? '' : 'none';
   openModal('modal-friend-profile');
-  if (friend.uid) { get(ref(db, `users/${friend.uid}`)).then(snap => { const d = snap.val(); if (d) txt('fp-friends-count', (d.friendsCount || 0) + ' friends'); }); }
+  if (friend.uid) get(ref(db, `users/${friend.uid}`)).then(snap => { const d = snap.val(); if (d) txt('fp-friends-count', (d.friendsCount || 0) + ' friends'); });
 }
 
 on('btn-add-friend', 'click', () => { if (selectedFriend) sendFriendReq(selectedFriend.uid, selectedFriend.name); closeModal(); });
 on('btn-fp-invite-room', 'click', async () => {
   if (selectedFriend && currentRoom) {
     await sendRoomInvite(selectedFriend.uid, selectedFriend.name);
-    txt('btn-fp-invite-room', 'Sent ✓');
-    setTimeout(() => txt('btn-fp-invite-room', 'Invite to room'), 2000);
+    txt('btn-fp-invite-room', 'Sent ✓'); setTimeout(() => txt('btn-fp-invite-room', 'Invite to room'), 2000);
   }
 });
 
 // ===== ACCOUNT =====
 on('settings-account-item', 'click', () => { $('account-name-input').value = myName; openModal('modal-account'); });
 on('btn-save-name', 'click', async () => {
-  const name = $('account-name-input').value.trim();
-  if (!name || !user) return;
-  await set(ref(db, `users/${user.uid}/name`), name);
-  myName = name; updateProfileUI();
+  const name = $('account-name-input').value.trim(); if (!name || !user) return;
+  await set(ref(db, `users/${user.uid}/name`), name); myName = name; updateProfileUI();
   txt('btn-save-name', 'Saved ✓'); setTimeout(() => txt('btn-save-name', 'Save username'), 2000);
 });
 on('btn-save-pwd', 'click', async () => {
-  const pwd = $('account-pwd-input').value;
-  if (!pwd || pwd.length < 6) { alert('Minimum 6 characters'); return; }
-  try {
-    await updatePassword(user, pwd); $('account-pwd-input').value = '';
-    txt('btn-save-pwd', 'Saved ✓'); setTimeout(() => txt('btn-save-pwd', 'Save password'), 2000);
-  } catch { alert('Please sign in again and retry'); }
+  const pwd = $('account-pwd-input').value; if (!pwd || pwd.length < 6) { alert('Minimum 6 characters'); return; }
+  try { await updatePassword(user, pwd); $('account-pwd-input').value = ''; txt('btn-save-pwd', 'Saved ✓'); setTimeout(() => txt('btn-save-pwd', 'Save password'), 2000); }
+  catch { alert('Please sign in again and retry'); }
 });

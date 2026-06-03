@@ -1,13 +1,14 @@
-2026/06/03-23:26:27.736 3fa4 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/MANIFEST-000001
-2026/06/03-23:26:27.737 3fa4 Recovering log #63
-2026/06/03-23:26:27.738 3fa4 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/000063.log 
-2026/06/03-23:26:27.744 abc Level-0 table #68: started
-2026/06/03-23:26:27.749 abc Level-0 table #68: 6447 bytes OK
-2026/06/03-23:26:27.751 abc Delete type=0 #63
-2026/06/03-23:26:27.751 abc Manual compaction at level-0 from '\x00\x13\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x14\x00\x00\x00' @ 0 : 0; will stop at (end)
-2026/06/03-23:27:06.156 3fa4 Compacting 1@1 + 1@2 files
-2026/06/03-23:27:06.168 3fa4 Generated table #69@1: 41 keys, 2894 bytes
-2026/06/03-23:27:06.169 3fa4 Compacted 1@1 + 1@2 files => 2894 bytes
-2026/06/03-23:27:06.172 3fa4 compacted to: files[ 0 0 1 0 0 0 0 ]
-2026/06/03-23:27:06.172 3fa4 Delete type=2 #65
-2026/06/03-23:27:06.172 3fa4 Delete type=2 #68
+2026/06/04-00:18:29.112 4918 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/MANIFEST-000001
+2026/06/04-00:18:29.113 4918 Recovering log #126
+2026/06/04-00:18:29.113 4918 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/000126.log 
+2026/06/04-00:18:29.113 4918 Delete type=2 #124
+2026/06/04-00:18:29.119 5708 Level-0 table #131: started
+2026/06/04-00:18:29.132 5708 Level-0 table #131: 3336 bytes OK
+2026/06/04-00:18:29.134 5708 Delete type=0 #126
+2026/06/04-00:18:29.134 5fa4 Manual compaction at level-0 from '\x00#\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00$\x00\x00\x00' @ 0 : 0; will stop at '\x00#\x00\x00\x05' @ 1611 : 1
+2026/06/04-00:18:29.134 5fa4 Compacting 1@0 + 1@1 files
+2026/06/04-00:18:29.146 5fa4 Generated table #132@0: 24 keys, 2999 bytes
+2026/06/04-00:18:29.146 5fa4 Compacted 1@0 + 1@1 files => 2999 bytes
+2026/06/04-00:18:29.147 5fa4 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/06/04-00:18:29.148 5fa4 Delete type=2 #131
+2026/06/04-00:18:29.148 5fa4 Manual compaction at level-0 from '\x00#\x00\x00\x05' @ 1611 : 1 .. '\x00$\x00\x00\x00' @ 0 : 0; will stop at (end)
