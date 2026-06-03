@@ -442,6 +442,8 @@ async function ytSearch(query, forChange = false) {
 
 async function createWithVideo(videoId, title) {
   if (!user) return;
+  await stopWebviewAudio($('main-webview'));
+  await stopWebviewAudio($('browser-webview'));
   const roomData = { title, source: 'youtube', videoId, host: myName, hostUid: user.uid, privacy: quickPrivacy, createdAt: Date.now() };
   const nr = await push(ref(db, 'rooms'), roomData);
   closeModal();
@@ -702,31 +704,17 @@ async function openUserProfileByName(name, uid) {
 }
 
 // ===== STOP WEBVIEW AUDIO =====
-function stopWebviewAudio(webview) {
+async function stopWebviewAudio(webview) {
   if (!webview) return;
-  // Мьютим через Electron IPC — единственный надёжный способ
-  const partition = webview.getAttribute('partition');
-  if (partition && window.electronAPI?.mutePartition) {
-    window.electronAPI.mutePartition(partition, true);
-  }
-  // Дополнительно паузим через JS
   try {
-    webview.executeJavaScript(`
-      document.querySelectorAll('video,audio').forEach(function(m){try{m.pause();m.volume=0;}catch(e){}});
-    `).catch(() => {});
+    await webview.executeJavaScript(`
+      document.querySelectorAll('video,audio').forEach(function(m){try{m.pause();}catch(e){}});
+    `);
   } catch {}
 }
 
-function unmuteWebview(webview) {
-  if (!webview) return;
-  const partition = webview.getAttribute('partition');
-  if (partition && window.electronAPI?.mutePartition) {
-    window.electronAPI.mutePartition(partition, false);
-  }
-}
 
-
-function updateViewer() {
+async function updateViewer() {
   if (!currentRoom) return;
   const wv = $('main-webview');
   const bwv = $('browser-webview');
@@ -739,45 +727,39 @@ function updateViewer() {
   if (bb) bb.style.display = 'none';
   if (pc) pc.style.display = 'none';
   if (ssv) ssv.style.display = 'none';
+  const csBtn = $('btn-close-source');
 
   if (currentRoom.source === 'youtube' && currentRoom.videoId) {
-    stopWebviewAudio(bwv); bwv.style.display = 'none';
+    await stopWebviewAudio(bwv); bwv.style.display = 'none';
     const src = `https://www.youtube.com/watch?v=${currentRoom.videoId}`;
     if (viewerSrc !== src) {
       wv.setAttribute('src', src); viewerSrc = src;
-      wv.addEventListener('dom-ready', () => {
-        unmuteWebview(wv);
-        onWebviewReady();
-      }, { once: true });
-    } else {
-      unmuteWebview(wv);
+      wv.addEventListener('dom-ready', onWebviewReady, { once: true });
     }
     wv.style.display = '';
+    if (csBtn) csBtn.style.display = '';
   } else if (currentRoom.source === 'browser') {
-    stopWebviewAudio(wv); wv.style.display = 'none'; viewerSrc = '';
+    await stopWebviewAudio(wv); wv.style.display = 'none'; viewerSrc = '';
     if (!bwv.getAttribute('src') || bwv.getAttribute('src') === 'about:blank') {
       bwv.setAttribute('src', 'https://www.google.com');
       $('browser-address').value = 'https://www.google.com';
     }
-    bwv.addEventListener('dom-ready', () => { unmuteWebview(bwv); }, { once: true });
     bwv.style.display = '';
     if (bb) bb.style.display = 'flex';
+    if (csBtn) csBtn.style.display = 'none'; // у браузера своя кнопка закрыть
     setupBrowserSync();
   } else if (currentRoom.url) {
-    stopWebviewAudio(bwv); bwv.style.display = 'none';
+    await stopWebviewAudio(bwv); bwv.style.display = 'none';
     const src = currentRoom.url;
-    if (viewerSrc !== src) {
-      wv.setAttribute('src', src); viewerSrc = src;
-      wv.addEventListener('dom-ready', () => { unmuteWebview(wv); }, { once: true });
-    } else {
-      unmuteWebview(wv);
-    }
+    if (viewerSrc !== src) { wv.setAttribute('src', src); viewerSrc = src; }
     wv.style.display = '';
     if (pc) pc.style.display = '';
+    if (csBtn) csBtn.style.display = '';
   } else {
-    stopWebviewAudio(wv); stopWebviewAudio(bwv);
+    await stopWebviewAudio(wv); await stopWebviewAudio(bwv);
     viewerSrc = '';
     ph.style.display = '';
+    if (csBtn) csBtn.style.display = 'none';
   }
 }
 
@@ -953,6 +935,29 @@ on('browser-address', 'keydown', e => { if (e.key === 'Enter') { isBrowserHost =
 on('btn-browser-back', 'click', () => { isBrowserHost = true; $('browser-webview')?.goBack?.(); });
 on('btn-browser-forward', 'click', () => { isBrowserHost = true; $('browser-webview')?.goForward?.(); });
 on('btn-browser-refresh', 'click', () => $('browser-webview')?.reload?.());
+on('btn-close-source', 'click', () => closeSource());
+
+
+
+async function closeSource() {
+  if (!currentRoom) return;
+  // Паузим и скрываем локально
+  const wv = $('main-webview');
+  const bwv = $('browser-webview');
+  await stopWebviewAudio(wv);
+  await stopWebviewAudio(bwv);
+  if (wv) { wv.setAttribute('src', 'about:blank'); wv.style.display = 'none'; viewerSrc = ''; }
+  if (bwv) { bwv.setAttribute('src', 'about:blank'); bwv.style.display = 'none'; }
+  const bb = $('browser-bar'); if (bb) bb.style.display = 'none';
+  const pc = $('player-controls'); if (pc) pc.style.display = 'none';
+  $('viewer-placeholder').style.display = '';
+  // Пишем в Firebase — у всех участников закроется источник
+  const roomId = currentRoom.id;
+  await set(ref(db, `rooms/${roomId}/source`), 'none');
+  await remove(ref(db, `rooms/${roomId}/videoId`));
+  await remove(ref(db, `rooms/${roomId}/url`));
+  await set(ref(db, `rooms/${roomId}/sync`), { playing: false, position: 0, ts: Date.now() });
+}
 
 // ===== TYPING =====
 on('chat-input', 'input', async () => {
@@ -976,17 +981,9 @@ function leaveRoom() {
   messagesUnsub = participantsUnsub = syncUnsub = roomDataUnsub = browserSyncUnsub = typingUnsub = queueUnsub = commandUnsub = null;
   if (ssStream) { ssStream.getTracks().forEach(t => t.stop()); ssStream = null; }
   const wv = $('main-webview');
-  if (wv) {
-    stopWebviewAudio(wv);
-    setTimeout(() => { try { wv.setAttribute('src', 'about:blank'); } catch {} }, 300);
-    wv.style.display = 'none'; viewerSrc = '';
-  }
+  if (wv) { stopWebviewAudio(wv); wv.style.display = 'none'; viewerSrc = ''; }
   const bwv = $('browser-webview');
-  if (bwv) {
-    stopWebviewAudio(bwv);
-    setTimeout(() => { try { bwv.setAttribute('src', 'about:blank'); } catch {} }, 300);
-    bwv.style.display = 'none';
-  }
+  if (bwv) { stopWebviewAudio(bwv); bwv.style.display = 'none'; }
   currentRoom = null; isPlaying = false; isHost = false;
   screen('main');
 }
@@ -1029,6 +1026,10 @@ async function applyChange(videoId, title, source, url) {
   if (!currentRoom) return;
   const src = source || changeSource;
   const roomId = currentRoom.id;
+
+  // Паузим всё что сейчас играет перед сменой источника
+  await stopWebviewAudio($('main-webview'));
+  await stopWebviewAudio($('browser-webview'));
 
   // Write each field individually — no null, no batch update
   await set(ref(db, `rooms/${roomId}/source`), src);
