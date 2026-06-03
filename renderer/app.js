@@ -70,13 +70,13 @@ on('btn-maximize', 'click', () => window.electronAPI?.maximize());
 on('btn-close', 'click', () => window.electronAPI?.close());
 
 // ===== THEME =====
-const themes = ['dark', 'light', 'warm'];
+const themes = ['dark', 'light', 'monke'];
 const themeLabels = { dark: '', light: '', warm: '' };
 function applyTheme(t) {
   theme = t;
-  document.body.classList.remove('light', 'warm');
+  document.body.classList.remove('light', 'monke');
   if (t === 'light') document.body.classList.add('light');
-  if (t === 'warm') document.body.classList.add('warm');
+  if (t === 'monke') document.body.classList.add('monke');
   txt('btn-theme', '');
 }
 on('btn-theme', 'click', () => {
@@ -238,23 +238,23 @@ function renderNotifications(notifs) {
   const el = $('notifs-list');
   if (!el) return;
   if (!notifs.length) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon">◎</div><div class="empty-text">НЕТ УВЕДОМЛЕНИЙ</div></div>';
+    el.innerHTML = '<div class="empty-state"><div class="empty-text">No notifications</div></div>';
     return;
   }
   el.innerHTML = notifs.map(n => {
-    const icons = { friend_request: '⁋', room_invite: '▶', watching: '◉', system: '◎' };
+    const icons = { friend_request: '♦', room_invite: '▶', watching: '●', system: '○' };
     const icon = icons[n.type] || '◎';
     const unreadDot = !n.read ? '<span style="width:6px;height:6px;border-radius:50%;background:var(--fg);flex-shrink:0;margin-left:auto"></span>' : '';
     let actionBtn = '';
     if (n.type === 'friend_request' && n.fromUid) {
       actionBtn = `<div style="display:flex;gap:6px;margin-top:8px">
-        <button class="btn-accept" data-notif-accept="${n.id}" data-uid="${n.fromUid}" data-name="${escA(n.fromName||'')}">ПРИНЯТЬ</button>
-        <button class="btn-sm" data-notif-decline="${n.id}" data-uid="${n.fromUid}">ОТКЛОНИТЬ</button>
+        <button class="btn-accept" data-notif-accept="${n.id}" data-uid="${n.fromUid}" data-name="${escA(n.fromName||'')}">Accept</button>
+        <button class="btn-sm" data-notif-decline="${n.id}" data-uid="${n.fromUid}">Decline</button>
       </div>`;
     }
     if (n.type === 'room_invite' && n.roomId) {
       actionBtn = `<div style="margin-top:8px">
-        <button class="btn-accept" data-notif-join="${n.roomId}" data-notif-id="${n.id}">ВОЙТИ В КОМНАТУ</button>
+        <button class="btn-accept" data-notif-join="${n.roomId}" data-notif-id="${n.id}">Join room</button>
       </div>`;
     }
     return `<div class="notif-row ${n.read ? '' : 'notif-unread'}" data-nid="${n.id}">
@@ -304,9 +304,9 @@ function timeAgo(ts) {
   const h = Math.floor(diff / 3600000);
   const d = Math.floor(diff / 86400000);
   if (m < 1) return 'just now';
-  if (m < 60) return `${m} мин назад`;
-  if (h < 24) return `${h} ч назад`;
-  return `${d} д назад`;
+  if (m < 60) return `${m}m ago`;
+  if (h < 24) return `${h}h ago`;
+  return `${d}d ago`;
 }
 
 // ===== ROOMS =====
@@ -317,7 +317,7 @@ function loadRooms() {
     const list = $('rooms-list');
     if (!data) {
       txt('rooms-count', '0');
-      list.innerHTML = `<div class="empty-state"><div class="empty-icon">▶</div><div class="empty-text">НЕТ АКТИВНЫХ КОМНАТ</div><button class="btn-link" id="btn-cf">СОЗДАТЬ ПЕРВУЮ →</button></div>`;
+      list.innerHTML = `<div class="empty-state"><div class="empty-text">No active rooms</div><button class="btn-link" id="btn-cf">Create the first one →</button></div>`;
       on('btn-cf', 'click', () => openModal('modal-quick-create'));
       return;
     }
@@ -328,7 +328,7 @@ function loadRooms() {
     list.innerHTML = rooms.map(r => {
       const thumb = r.source === 'youtube' && r.videoId
         ? `<img src="https://img.youtube.com/vi/${r.videoId}/mqdefault.jpg" style="width:100%;height:100%;object-fit:cover;border-radius:6px;" />`
-        : `<span style="font-size:22px;color:var(--fg3)">${r.source==='youtube'?'▶':r.source==='twitch'?'◈':r.source==='browser'?'⊞':'▤'}</span>`;
+        : `<span style="font-size:22px;color:var(--fg3)">${''}</span>`;
       return `<div class="room-card" data-id="${r.id}">
         <div class="room-card-thumb"><div class="room-card-source">${(r.source||'').toUpperCase()}</div>${thumb}</div>
         <div class="room-card-info">
@@ -350,17 +350,17 @@ function loadRooms() {
 document.querySelectorAll('.platform-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     quickSource = btn.dataset.platform;
-    const titles = { youtube: 'ПОИСК YOUTUBE', twitch: 'TWITCH', browser: 'БРАУЗЕР', file: 'ФАЙЛ' };
-    txt('quick-create-title', titles[quickSource] || 'НОВАЯ КОМНАТА');
+    const titles = { youtube: 'YouTube', twitch: 'Twitch', browser: 'Browser', file: 'File' };
+    txt('quick-create-title', titles[quickSource] || 'New room');
     if (quickSource === 'youtube') { openModal('modal-yt-search'); return; }
     $('quick-link-section').style.display = (quickSource === 'twitch' || quickSource === 'file') ? '' : 'none';
-    if (quickSource === 'twitch') { txt('quick-link-label', 'ССЫЛКА НА КАНАЛ'); $('quick-link-input').placeholder = 'twitch.tv/channel'; }
+    if (quickSource === 'twitch') { txt('quick-link-label', 'Channel link'); $('quick-link-input').placeholder = 'twitch.tv/channel'; }
     if (quickSource === 'file') { txt('quick-link-label', 'ПРЯМАЯ ССЫЛКА НА MP4'); $('quick-link-input').placeholder = 'https://...'; }
     openModal('modal-quick-create');
   });
 });
 
-on('btn-create-room', 'click', () => { quickSource = 'youtube'; $('quick-link-section').style.display = 'none'; txt('quick-create-title', 'НОВАЯ КОМНАТА'); openModal('modal-yt-search'); });
+on('btn-create-room', 'click', () => { quickSource = 'youtube'; $('quick-link-section').style.display = 'none'; txt('quick-create-title', 'New room'); openModal('modal-yt-search'); });
 on('btn-create-first', 'click', () => { quickSource = 'youtube'; openModal('modal-yt-search'); });
 
 document.querySelectorAll('#modal-quick-create .privacy-tab').forEach(btn => {
@@ -564,7 +564,7 @@ function enterRoom(room) {
       .filter(([uid, v]) => uid !== user.uid && v.active && (Date.now() - (v.ts||0)) < 4000)
       .map(([,v]) => v.name) : [];
     const el = $('typing-indicator');
-    if (el) { el.textContent = typers.length ? `${typers.join(', ')} печатает...` : ''; el.style.display = typers.length ? '' : 'none'; }
+    if (el) { el.textContent = typers.length ? `${typers.join(', ')} is typing...` : ''; el.style.display = typers.length ? '' : 'none'; }
   });
 
   // Participants
@@ -577,7 +577,7 @@ function enterRoom(room) {
     $('modal-parts-list').innerHTML = list.map(p => `
       <div class="friend-row" style="cursor:pointer" data-puid="${p.uid}" data-pname="${escA(p.name||'')}">
         <div class="avatar">${(p.name||'?')[0].toUpperCase()}</div>
-        <div><div class="friend-name">${esc(p.name||'')}</div>${p.uid===currentRoom.hostUid||p.name===currentRoom.host?'<div class="friend-sub">ХОСТ</div>':''}</div>
+        <div><div class="friend-name">${esc(p.name||'')}</div>${p.uid===currentRoom.hostUid||p.name===currentRoom.host?'<div class="friend-sub">Host</div>':''}</div>
       </div>`).join('');
     $('modal-parts-list').querySelectorAll('[data-puid]').forEach(row => {
       row.addEventListener('click', () => openUserProfileByName(row.dataset.pname, row.dataset.puid));
@@ -848,8 +848,8 @@ document.querySelectorAll('#change-source-tabs .source-tab').forEach(btn => {
     $('change-yt-section').style.display = changeSource === 'youtube' ? '' : 'none';
     $('change-link-section').style.display = (changeSource === 'twitch' || changeSource === 'file') ? '' : 'none';
     $('change-browser-section').style.display = changeSource === 'browser' ? '' : 'none';
-    if (changeSource === 'twitch') { txt('change-link-label', 'ССЫЛКА НА КАНАЛ'); $('change-link-input').placeholder = 'twitch.tv/channel'; }
-    if (changeSource === 'file') { txt('change-link-label', 'ПРЯМАЯ ССЫЛКА'); $('change-link-input').placeholder = 'https://...'; }
+    if (changeSource === 'twitch') { txt('change-link-label', 'Channel link'); $('change-link-input').placeholder = 'twitch.tv/channel'; }
+    if (changeSource === 'file') { txt('change-link-label', 'Direct link'); $('change-link-input').placeholder = 'https://...'; }
   });
 });
 
@@ -907,7 +907,7 @@ on('btn-copy-invite', 'click', () => {
 function renderInviteFriends() {
   const el = $('invite-friends-list');
   if (!el || !currentRoom) return;
-  if (!friends.length) { el.innerHTML = '<div style="color:var(--fg3);font-size:10px;font-family:var(--mono);letter-spacing:1px;padding:8px 0">НЕТ ДРУЗЕЙ</div>'; return; }
+  if (!friends.length) { el.innerHTML = '<div style="color:var(--fg3);font-size:10px;font-family:var(--mono);letter-spacing:1px;padding:8px 0">No friends yet</div>'; return; }
   el.innerHTML = friends.map(f => `
     <div class="friend-row">
       <div class="avatar">${(f.name||'?')[0].toUpperCase()}</div>
@@ -973,7 +973,7 @@ on('btn-send-image', 'click', () => {
 // ===== MSG BODY BUILDER =====
 function buildMsgBody(m) {
   const type = m.type; const url = m.fileUrl || m.imageUrl || '';
-  const name = m.fileName || 'файл'; const size = m.fileSize ? formatSize(m.fileSize) : '';
+  const name = m.fileName || 'file'; const size = m.fileSize ? formatSize(m.fileSize) : '';
   if (type === 'image' && url) return `<div class="msg-img-wrap"><img class="chat-msg-img msg-clickable" src="${url}" data-url="${escA(url)}" data-name="${escA(name)}" /><div class="msg-file-actions"><span class="msg-action-btn" data-open-url="${escA(url)}" data-open-name="${escA(name)}">⊙ открыть</span><span class="msg-action-btn" data-save-url="${escA(url)}" data-save-name="${escA(name)}">⤓ сохранить</span></div></div>`;
   if (type === 'video' && url) return `<div class="msg-video-wrap"><video class="chat-msg-video msg-clickable" src="${url}" data-url="${escA(url)}" data-name="${escA(name)}" preload="metadata"></video><div class="msg-file-info"><span class="msg-file-name">${esc(name)}</span><span class="msg-file-size">${size}</span></div><div class="msg-file-actions"><span class="msg-action-btn" data-open-url="${escA(url)}" data-open-name="${escA(name)}">⊙ открыть</span><span class="msg-action-btn" data-save-url="${escA(url)}" data-save-name="${escA(name)}">⤓ сохранить</span></div></div>`;
   if (type === 'audio' && url) return `<div class="msg-audio-wrap"><audio class="chat-msg-audio" src="${url}" controls preload="metadata"></audio><div class="msg-file-actions"><span class="msg-action-btn" data-save-url="${escA(url)}" data-save-name="${escA(name)}">⤓ сохранить</span></div></div>`;
@@ -1007,8 +1007,8 @@ function openLightbox(url, name) {
     lb = document.createElement('div'); lb.id = 'msg-lightbox';
     lb.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:zoom-out;';
     lb.innerHTML = `<div style="position:absolute;top:16px;right:16px;display:flex;gap:8px;z-index:1">
-      <button id="lb-open" style="background:rgba(255,255,255,0.1);border:0.5px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:6px 12px;font-family:var(--mono);font-size:10px;letter-spacing:1px;cursor:pointer">⊙ ОТКРЫТЬ</button>
-      <button id="lb-save" style="background:rgba(255,255,255,0.1);border:0.5px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:6px 12px;font-family:var(--mono);font-size:10px;letter-spacing:1px;cursor:pointer">⤓ СОХРАНИТЬ</button>
+      <button id="lb-open" style="background:rgba(255,255,255,0.1);border:0.5px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:6px 12px;font-family:var(--mono);font-size:10px;letter-spacing:1px;cursor:pointer">Open</button>
+      <button id="lb-save" style="background:rgba(255,255,255,0.1);border:0.5px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:6px 12px;font-family:var(--mono);font-size:10px;letter-spacing:1px;cursor:pointer">Save</button>
       <button id="lb-close" style="background:rgba(255,255,255,0.1);border:0.5px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:6px 12px;font-family:var(--mono);font-size:10px;letter-spacing:1px;cursor:pointer">✕</button>
     </div>
     <img id="lb-img" style="max-width:90vw;max-height:88vh;object-fit:contain;border-radius:4px;box-shadow:0 8px 40px rgba(0,0,0,0.6)" />
@@ -1049,10 +1049,10 @@ function loadIncomingRequests() {
 
 function renderFriends() {
   const el = $('friends-list');
-  if (!friends.length) { el.innerHTML = '<div class="empty-state"><div class="empty-text">ПОКА НИКОГО</div></div>'; return; }
+  if (!friends.length) { el.innerHTML = '<div class="empty-state"><div class="empty-text">No friends yet</div></div>'; return; }
   el.innerHTML = friends.map(f => {
     const av = f.avatar ? `<div class="avatar" style="background-image:url(${f.avatar});background-size:cover;background-position:center"></div>` : `<div class="avatar">${(f.name||'?')[0].toUpperCase()}</div>`;
-    return `<div class="friend-row" data-uid="${f.uid}">${av}<div><div class="friend-name">${esc(f.name||'')}</div><div class="friend-sub">ДРУГ</div></div><span style="color:var(--fg3)">→</span></div>`;
+    return `<div class="friend-row" data-uid="${f.uid}">${av}<div><div class="friend-name">${esc(f.name||'')}</div><div class="friend-sub">Friend</div></div><span style="color:var(--fg3)">→</span></div>`;
   }).join('');
   el.querySelectorAll('.friend-row').forEach(row => {
     row.addEventListener('click', () => { const f = friends.find(f => f.uid === row.dataset.uid); if (f) openFriendProfile(f); });
@@ -1066,7 +1066,7 @@ function renderIncoming() {
   list.innerHTML = incomingReqs.map(r => `
     <div class="friend-row">
       <div class="avatar">${(r.fromName||'?')[0].toUpperCase()}</div>
-      <div style="flex:1"><div class="friend-name">${esc(r.fromName||'')}</div><div class="friend-sub">ХОЧЕТ ДОБАВИТЬ ВАС</div></div>
+      <div style="flex:1"><div class="friend-name">${esc(r.fromName||'')}</div><div class="friend-sub">wants to add you</div></div>
       <div style="display:flex;gap:6px">
         <button class="btn-accept" data-uid="${r.fromUid}" data-name="${escA(r.fromName)}">ОК</button>
         <button class="btn-sm" data-dec="${r.fromUid}">✕</button>
@@ -1103,7 +1103,7 @@ async function searchUsers() {
   list.innerHTML = results.map(u => {
     const isFriend = friends.some(f => f.uid === u.uid);
     const av = u.avatar ? `<div class="avatar" style="background-image:url(${u.avatar});background-size:cover;background-position:center"></div>` : `<div class="avatar">${(u.name||'?')[0].toUpperCase()}</div>`;
-    return `<div class="friend-row" data-uid="${u.uid}">${av}<div style="flex:1"><div class="friend-name">${esc(u.name||'')}</div><div class="friend-sub">${u.friendsCount||0} ДРУЗЕЙ</div></div>${isFriend?'<span style="color:var(--fg3);font-size:9px;font-family:var(--mono);letter-spacing:1px">ДРУГ</span>':`<button class="btn-sm" data-add="${u.uid}" data-aname="${escA(u.name)}">+</button>`}</div>`;
+    return `<div class="friend-row" data-uid="${u.uid}">${av}<div style="flex:1"><div class="friend-name">${esc(u.name||'')}</div><div class="friend-sub">${u.friendsCount||0} friends</div></div>${isFriend?'<span style="color:var(--fg3);font-size:9px;font-family:var(--mono);letter-spacing:1px">ДРУГ</span>':`<button class="btn-sm" data-add="${u.uid}" data-aname="${escA(u.name)}">+</button>`}</div>`;
   }).join('');
   list.querySelectorAll('[data-add]').forEach(btn => { btn.addEventListener('click', e => { e.stopPropagation(); sendFriendReq(btn.dataset.add, btn.dataset.aname); }); });
   list.querySelectorAll('.friend-row').forEach(row => { row.addEventListener('click', () => { const u = results.find(r => r.uid === row.dataset.uid); if (u) openFriendProfile(u); }); });
@@ -1120,7 +1120,7 @@ function openFriendProfile(friend) {
   const isFriend = friends.some(f => f.uid === friend.uid);
   txt('fp-avatar', (friend.name||'?')[0].toUpperCase());
   txt('fp-name', friend.name || '');
-  txt('fp-friends-count', (friend.friendsCount || 0) + ' друзей');
+  txt('fp-friends-count', (friend.friendsCount || 0) + ' friends');
   if (friend.avatar) { $('fp-avatar-img').style.backgroundImage = `url(${friend.avatar})`; $('fp-avatar-img').style.display = ''; }
   else $('fp-avatar-img').style.display = 'none';
   $('btn-add-friend').style.display = isFriend ? 'none' : '';
@@ -1128,7 +1128,7 @@ function openFriendProfile(friend) {
   const invBtn = $('btn-fp-invite-room');
   if (invBtn) invBtn.style.display = (currentRoom && isFriend) ? '' : 'none';
   openModal('modal-friend-profile');
-  if (friend.uid) { get(ref(db, `users/${friend.uid}`)).then(snap => { const d = snap.val(); if (d) txt('fp-friends-count', (d.friendsCount || 0) + ' друзей'); }); }
+  if (friend.uid) { get(ref(db, `users/${friend.uid}`)).then(snap => { const d = snap.val(); if (d) txt('fp-friends-count', (d.friendsCount || 0) + ' friends'); }); }
 }
 
 on('btn-add-friend', 'click', () => { if (selectedFriend) sendFriendReq(selectedFriend.uid, selectedFriend.name); closeModal(); });

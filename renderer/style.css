@@ -46,19 +46,26 @@
   --border3: #b8b8b4;
 }
 
-.warm {
-  --bg:      #0c0a08;
-  --bg2:     #131109;
-  --bg3:     #1a180f;
-  --bg4:     #211e13;
-  --bg5:     #282418;
-  --fg:      #f5f0e8;
-  --fg2:     #8a8070;
-  --fg3:     #3a3428;
-  --fg4:     #252018;
-  --border:  #1e1c12;
-  --border2: #2a2820;
-  --border3: #38342a;
+.monke {
+  /* Old money — like a private members club */
+  --bg:      #f2ede4;
+  --bg2:     #ebe5da;
+  --bg3:     #e2dbd0;
+  --bg4:     #d8d0c4;
+  --bg5:     #cdc4b6;
+  --fg:      #1c1510;
+  --fg2:     #5a4a38;
+  --fg3:     #a89880;
+  --fg4:     #d0c8bc;
+  --border:  #d8d0c4;
+  --border2: #c8bfb2;
+  --border3: #b0a594;
+  --accent:  #1c1510;
+  --red:     #8b2c2c;
+  --green:   #2c5a2c;
+  --blue:    #2c3e6e;
+  --sans:    'Cormorant Garamond', Georgia, serif;
+  --mono:    'Geist Mono', monospace;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -753,3 +760,28 @@ html, body {
 .tb-icon-btn:hover { color: var(--fg2); background: var(--bg3); }
 .tb-icon-btn.sm svg { width: 13px; height: 13px; }
 .tb-icon-btn.danger:hover { color: var(--red); background: rgba(224,85,85,0.1); }
+
+/* ===== MONKE (OLD MONEY) SPECIAL TOUCHES ===== */
+.monke body { font-size: 14px; }
+.monke .wordmark { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 400; letter-spacing: 0.28em; font-style: italic; }
+.monke .section-label { font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; letter-spacing: 2px; font-size: 11px; text-transform: none; }
+.monke .auth-tagline { font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; letter-spacing: 5px; font-size: 11px; }
+.monke .auth-mode-label { font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; letter-spacing: 2px; font-size: 12px; text-transform: none; }
+.monke .btn-primary { border-radius: 2px; letter-spacing: 2px; font-size: 10px; }
+.monke .btn-ghost { border-radius: 2px; }
+.monke .room-card { border-radius: 4px; }
+.monke .modal { border-radius: 6px 6px 0 0; }
+.monke .modal-title { font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; letter-spacing: 2px; font-size: 14px; text-transform: none; }
+.monke .friend-name { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 15px; font-weight: 400; }
+.monke .profile-name { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; font-weight: 400; }
+.monke .stat-val { font-family: 'Cormorant Garamond', Georgia, serif; }
+.monke .fp-name { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px; }
+.monke .chat-msg-text { font-size: 13.5px; line-height: 1.5; }
+.monke .home-search-bar { border-radius: 3px; }
+.monke .search-bar { border-radius: 3px; }
+.monke .chat-input { border-radius: 3px; }
+.monke .chat-send-btn { border-radius: 3px; }
+.monke .sidebar { background: var(--bg2); border-right-color: var(--border); }
+.monke .titlebar { background: var(--bg2); border-bottom-color: var(--border); }
+.monke .room-topbar { background: var(--bg2); }
+.monke .room-chat { background: var(--bg2); }
