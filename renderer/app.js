@@ -519,10 +519,10 @@ function enterRoom(room) {
   clearInterval(posTimer);
   if (ssStream) { ssStream.getTracks().forEach(t => t.stop()); ssStream = null; }
 
-  // Глушим оба webview перед входом в новую комнату
+  // Скрываем оба webview перед входом в новую комнату — updateViewer покажет нужный
   const _wv = $('main-webview'); const _bwv = $('browser-webview');
-  if (_wv) { stopWebviewAudio(_wv); _wv.style.display = 'none'; setTimeout(() => { try { if (viewerSrc) _wv.setAttribute('src', 'about:blank'); } catch {} }, 300); }
-  if (_bwv) { stopWebviewAudio(_bwv); _bwv.style.display = 'none'; }
+  if (_wv) { _wv.style.display = 'none'; }
+  if (_bwv) { _bwv.style.display = 'none'; }
   viewerSrc = '';
 
   currentRoom = room;
@@ -745,9 +745,13 @@ function updateViewer() {
     const src = `https://www.youtube.com/watch?v=${currentRoom.videoId}`;
     if (viewerSrc !== src) {
       wv.setAttribute('src', src); viewerSrc = src;
-      wv.addEventListener('dom-ready', onWebviewReady, { once: true });
+      wv.addEventListener('dom-ready', () => {
+        unmuteWebview(wv);
+        onWebviewReady();
+      }, { once: true });
+    } else {
+      unmuteWebview(wv);
     }
-    unmuteWebview(wv);
     wv.style.display = '';
   } else if (currentRoom.source === 'browser') {
     stopWebviewAudio(wv); wv.style.display = 'none'; viewerSrc = '';
@@ -755,15 +759,19 @@ function updateViewer() {
       bwv.setAttribute('src', 'https://www.google.com');
       $('browser-address').value = 'https://www.google.com';
     }
-    unmuteWebview(bwv);
+    bwv.addEventListener('dom-ready', () => { unmuteWebview(bwv); }, { once: true });
     bwv.style.display = '';
     if (bb) bb.style.display = 'flex';
     setupBrowserSync();
   } else if (currentRoom.url) {
     stopWebviewAudio(bwv); bwv.style.display = 'none';
     const src = currentRoom.url;
-    if (viewerSrc !== src) { wv.setAttribute('src', src); viewerSrc = src; }
-    unmuteWebview(wv);
+    if (viewerSrc !== src) {
+      wv.setAttribute('src', src); viewerSrc = src;
+      wv.addEventListener('dom-ready', () => { unmuteWebview(wv); }, { once: true });
+    } else {
+      unmuteWebview(wv);
+    }
     wv.style.display = '';
     if (pc) pc.style.display = '';
   } else {

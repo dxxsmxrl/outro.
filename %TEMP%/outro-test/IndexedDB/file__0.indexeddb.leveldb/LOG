@@ -1,13 +1,13 @@
-2026/06/03-10:51:01.539 10c0 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/MANIFEST-000001
-2026/06/03-10:51:01.539 10c0 Recovering log #35
-2026/06/03-10:51:01.539 10c0 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/000035.log 
-2026/06/03-10:51:01.547 4148 Level-0 table #40: started
-2026/06/03-10:51:01.560 4148 Level-0 table #40: 3171 bytes OK
-2026/06/03-10:51:01.562 4148 Delete type=0 #35
-2026/06/03-10:51:01.562 10c0 Manual compaction at level-0 from '\x00\x0c\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x0d\x00\x00\x00' @ 0 : 0; will stop at (end)
-2026/06/03-10:51:41.565 4ccc Compacting 1@1 + 1@2 files
-2026/06/03-10:51:41.585 4ccc Generated table #41@1: 41 keys, 2892 bytes
-2026/06/03-10:51:41.586 4ccc Compacted 1@1 + 1@2 files => 2892 bytes
-2026/06/03-10:51:41.588 4ccc compacted to: files[ 0 0 1 0 0 0 0 ]
-2026/06/03-10:51:41.588 4ccc Delete type=2 #37
-2026/06/03-10:51:41.589 4ccc Delete type=2 #40
+2026/06/03-10:54:18.841 5e4c Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/MANIFEST-000001
+2026/06/03-10:54:18.842 5e4c Recovering log #39
+2026/06/03-10:54:18.842 5e4c Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/000039.log 
+2026/06/03-10:54:18.848 2420 Level-0 table #44: started
+2026/06/03-10:54:18.863 2420 Level-0 table #44: 3242 bytes OK
+2026/06/03-10:54:18.865 2420 Delete type=0 #39
+2026/06/03-10:54:18.865 5e4c Manual compaction at level-0 from '\x00\x0d\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x0e\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/06/03-10:54:58.872 5e4c Compacting 1@1 + 1@2 files
+2026/06/03-10:54:58.881 5e4c Generated table #45@1: 41 keys, 2892 bytes
+2026/06/03-10:54:58.881 5e4c Compacted 1@1 + 1@2 files => 2892 bytes
+2026/06/03-10:54:58.882 5e4c compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/06/03-10:54:58.883 5e4c Delete type=2 #41
+2026/06/03-10:54:58.883 5e4c Delete type=2 #44
