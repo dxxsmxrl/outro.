@@ -442,7 +442,7 @@ async function ytSearch(query, forChange = false) {
 
 async function createWithVideo(videoId, title) {
   if (!user) return;
-  await stopWebviewAudio($('main-webview'));
+  await stopWebviewAudio($('main-webview')); viewerSrc = '';
   await stopWebviewAudio($('browser-webview'));
   const roomData = { title, source: 'youtube', videoId, host: myName, hostUid: user.uid, privacy: quickPrivacy, createdAt: Date.now() };
   const nr = await push(ref(db, 'rooms'), roomData);
@@ -711,6 +711,9 @@ async function stopWebviewAudio(webview) {
       document.querySelectorAll('video,audio').forEach(function(m){try{m.pause();}catch(e){}});
     `);
   } catch {}
+  // about:blank — единственный надёжный способ убить аудио
+  // ERR_ABORTED это нормально, не крашит приложение
+  try { webview.setAttribute('src', 'about:blank'); } catch {}
 }
 
 
@@ -900,8 +903,7 @@ function setupBrowserSync() {
     // Guests won't navigate themselves so this is effectively host-only.
     const navHandler = e => {
       $('browser-address').value = e.url;
-      // Sync any navigation (address bar, link clicks, back/forward) if we are the one driving
-      if (currentRoom && (isBrowserHost || isHost)) syncBrowserUrl(e.url);
+      if (currentRoom) syncBrowserUrl(e.url);
     };
     bwv.__navHandler = navHandler;
     bwv.addEventListener('did-navigate', navHandler);
@@ -923,7 +925,6 @@ function navBrowser(input) {
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     url = url.includes('.') && !url.includes(' ') ? `https://${url}` : `https://www.google.com/search?q=${encodeURIComponent(url)}&gl=us&hl=en`;
   }
-  isBrowserHost = true;
   const bwv = $('browser-webview');
   bwv.setAttribute('src', url);
   $('browser-address').value = url;
@@ -931,9 +932,9 @@ function navBrowser(input) {
 }
 
 on('btn-browser-go', 'click', () => navBrowser($('browser-address').value));
-on('browser-address', 'keydown', e => { if (e.key === 'Enter') { isBrowserHost = true; navBrowser($('browser-address').value); } });
-on('btn-browser-back', 'click', () => { isBrowserHost = true; $('browser-webview')?.goBack?.(); });
-on('btn-browser-forward', 'click', () => { isBrowserHost = true; $('browser-webview')?.goForward?.(); });
+on('browser-address', 'keydown', e => { if (e.key === 'Enter') navBrowser($('browser-address').value); });
+on('btn-browser-back', 'click', () => { $('browser-webview')?.goBack?.(); });
+on('btn-browser-forward', 'click', () => { $('browser-webview')?.goForward?.(); });
 on('btn-browser-refresh', 'click', () => $('browser-webview')?.reload?.());
 on('btn-close-source', 'click', () => closeSource());
 
@@ -1028,7 +1029,7 @@ async function applyChange(videoId, title, source, url) {
   const roomId = currentRoom.id;
 
   // Паузим всё что сейчас играет перед сменой источника
-  await stopWebviewAudio($('main-webview'));
+  await stopWebviewAudio($('main-webview')); viewerSrc = '';
   await stopWebviewAudio($('browser-webview'));
 
   // Write each field individually — no null, no batch update

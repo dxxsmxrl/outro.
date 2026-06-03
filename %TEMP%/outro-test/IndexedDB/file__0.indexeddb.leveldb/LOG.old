@@ -1,13 +1,13 @@
-2026/06/03-10:54:18.841 5e4c Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/MANIFEST-000001
-2026/06/03-10:54:18.842 5e4c Recovering log #39
-2026/06/03-10:54:18.842 5e4c Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/000039.log 
-2026/06/03-10:54:18.848 2420 Level-0 table #44: started
-2026/06/03-10:54:18.863 2420 Level-0 table #44: 3242 bytes OK
-2026/06/03-10:54:18.865 2420 Delete type=0 #39
-2026/06/03-10:54:18.865 5e4c Manual compaction at level-0 from '\x00\x0d\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x0e\x00\x00\x00' @ 0 : 0; will stop at (end)
-2026/06/03-10:54:58.872 5e4c Compacting 1@1 + 1@2 files
-2026/06/03-10:54:58.881 5e4c Generated table #45@1: 41 keys, 2892 bytes
-2026/06/03-10:54:58.881 5e4c Compacted 1@1 + 1@2 files => 2892 bytes
-2026/06/03-10:54:58.882 5e4c compacted to: files[ 0 0 1 0 0 0 0 ]
-2026/06/03-10:54:58.883 5e4c Delete type=2 #41
-2026/06/03-10:54:58.883 5e4c Delete type=2 #44
+2026/06/03-10:57:19.849 19a0 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/MANIFEST-000001
+2026/06/03-10:57:19.850 19a0 Recovering log #43
+2026/06/03-10:57:19.850 19a0 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/000043.log 
+2026/06/03-10:57:19.855 190c Level-0 table #48: started
+2026/06/03-10:57:19.869 190c Level-0 table #48: 3243 bytes OK
+2026/06/03-10:57:19.871 190c Delete type=0 #43
+2026/06/03-10:57:19.871 19a0 Manual compaction at level-0 from '\x00\x0e\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x0f\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/06/03-10:57:59.870 19a0 Compacting 1@1 + 1@2 files
+2026/06/03-10:57:59.882 19a0 Generated table #49@1: 41 keys, 2889 bytes
+2026/06/03-10:57:59.883 19a0 Compacted 1@1 + 1@2 files => 2889 bytes
+2026/06/03-10:57:59.884 19a0 compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/06/03-10:57:59.884 19a0 Delete type=2 #45
+2026/06/03-10:57:59.884 19a0 Delete type=2 #48

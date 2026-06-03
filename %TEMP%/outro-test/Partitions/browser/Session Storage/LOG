@@ -1,3 +1,6 @@
-2026/06/03-10:57:50.277 1818 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\Session Storage/MANIFEST-000001
-2026/06/03-10:57:50.278 1818 Recovering log #3
-2026/06/03-10:57:50.278 1818 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\Session Storage/000003.log 
+2026/06/03-11:09:22.094 5c58 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\Session Storage/MANIFEST-000001
+2026/06/03-11:09:22.094 5c58 Recovering log #3
+2026/06/03-11:09:22.095 5c58 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\Session Storage/000003.log 
+2026/06/03-11:14:14.901 fe4 Level-0 table #5: started
+2026/06/03-11:14:14.906 fe4 Level-0 table #5: 21047 bytes OK
+2026/06/03-11:14:14.909 fe4 Delete type=0 #3
