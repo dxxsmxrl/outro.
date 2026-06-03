@@ -872,12 +872,30 @@ on('btn-apply-browser', 'click', () => applyChange(undefined, undefined, 'browse
 async function applyChange(videoId, title, source, url) {
   if (!currentRoom) return;
   const src = source || changeSource;
-  const fieldUpdates = { source: src, title: title || currentRoom.title };
-  if (src === 'browser') { fieldUpdates.videoId = null; fieldUpdates.url = null; isBrowserHost = true; }
-  else if (videoId) { fieldUpdates.videoId = videoId; fieldUpdates.url = null; }
-  else if (url) { fieldUpdates.url = url.startsWith('http') ? url : `https://${url}`; fieldUpdates.videoId = null; }
+
+  // Firebase update() doesn't support null — use remove() for fields we want to clear
   const { update } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-  await update(ref(db, `rooms/${currentRoom.id}`), fieldUpdates);
+  const roomRef = ref(db, `rooms/${currentRoom.id}`);
+
+  const fieldUpdates = { source: src, title: title || currentRoom.title };
+
+  if (src === 'browser') {
+    isBrowserHost = true;
+    await update(roomRef, fieldUpdates);
+    await remove(ref(db, `rooms/${currentRoom.id}/videoId`));
+    await remove(ref(db, `rooms/${currentRoom.id}/url`));
+  } else if (videoId) {
+    fieldUpdates.videoId = videoId;
+    await update(roomRef, fieldUpdates);
+    await remove(ref(db, `rooms/${currentRoom.id}/url`));
+  } else if (url) {
+    fieldUpdates.url = url.startsWith('http') ? url : `https://${url}`;
+    await update(roomRef, fieldUpdates);
+    await remove(ref(db, `rooms/${currentRoom.id}/videoId`));
+  } else {
+    await update(roomRef, fieldUpdates);
+  }
+
   await set(ref(db, `rooms/${currentRoom.id}/sync`), { playing: false, position: 0, ts: Date.now() });
   isPlaying = false;
   closeModal();
