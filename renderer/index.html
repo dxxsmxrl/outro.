@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: wss: data: blob:; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https: wss: ws:; img-src 'self' data: https: blob:;" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: wss: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; font-src 'self' https:; connect-src 'self' https: wss: ws:; img-src 'self' data: https: blob:;" />
   <title>Outro</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
@@ -270,7 +270,7 @@
             <div class="vp-sub">Press change video to add content</div>
           </div>
           <webview id="main-webview" style="display:none;width:100%;height:100%;" allowpopups partition="persist:main"></webview>
-          <webview id="browser-webview" style="display:none;width:100%;height:100%;" allowpopups partition="persist:browser"></webview>
+          <webview id="browser-webview" style="display:none;width:100%;height:100%;" src="https://www.google.com" allowpopups partition="persist:browser"></webview>
         </div>
 
         <!-- Player controls (non-YT) -->

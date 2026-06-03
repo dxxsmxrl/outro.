@@ -1,3 +1,6 @@
-2026/06/03-11:19:21.784 4db8 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\main\IndexedDB\https_www.youtube.com_0.indexeddb.leveldb/MANIFEST-000001
-2026/06/03-11:19:21.785 4db8 Recovering log #18
-2026/06/03-11:19:21.794 4db8 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\main\IndexedDB\https_www.youtube.com_0.indexeddb.leveldb/000018.log 
+2026/06/03-23:27:06.910 54a8 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\main\IndexedDB\https_www.youtube.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/06/03-23:27:06.920 54a8 Recovering log #18
+2026/06/03-23:27:06.957 54a8 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\main\IndexedDB\https_www.youtube.com_0.indexeddb.leveldb/000018.log 
+2026/06/03-23:27:30.473 3fa4 Level-0 table #23: started
+2026/06/03-23:27:30.491 3fa4 Level-0 table #23: 2522579 bytes OK
+2026/06/03-23:27:30.493 3fa4 Delete type=0 #18

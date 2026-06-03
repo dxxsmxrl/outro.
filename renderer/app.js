@@ -337,12 +337,13 @@ function loadRooms() {
     list.innerHTML = rooms.map(r => {
       const thumb = r.source === 'youtube' && r.videoId
         ? `<img src="https://img.youtube.com/vi/${r.videoId}/mqdefault.jpg" style="width:100%;height:100%;object-fit:cover;border-radius:6px;" />`
-        : `<span style="font-size:22px;color:var(--fg3)">${''}</span>`;
+        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--fg3);font-size:10px;font-family:var(--mono);letter-spacing:1px">${(r.source||'—').toUpperCase()}</div>`;
+      const syncPos = r.sync?.position ? Math.floor(r.sync.position / 60) + ':' + String(Math.floor(r.sync.position % 60)).padStart(2,'0') : '';
       return `<div class="room-card" data-id="${r.id}">
         <div class="room-card-thumb"><div class="room-card-source">${(r.source||'').toUpperCase()}</div>${thumb}</div>
         <div class="room-card-info">
           <div class="room-card-title">${esc(r.title||'—')}</div>
-          <div class="room-card-meta">${esc(r.host||'').toUpperCase()} · ${(r.privacy||'').toUpperCase()}</div>
+          <div class="room-card-meta">${esc(r.host||'').toUpperCase()} · ${(r.privacy||'').toUpperCase()}${syncPos ? ' · ' + syncPos : ''}</div>
         </div>
       </div>`;
     }).join('');
@@ -515,17 +516,21 @@ on('btn-add-to-queue', 'click', () => {
 });
 
 // ===== ENTER ROOM =====
-function enterRoom(room) {
+async function enterRoom(roomInit) {
   [messagesUnsub, participantsUnsub, syncUnsub, roomDataUnsub, browserSyncUnsub, typingUnsub, queueUnsub, commandUnsub].forEach(u => u?.());
   messagesUnsub = participantsUnsub = syncUnsub = roomDataUnsub = browserSyncUnsub = typingUnsub = queueUnsub = commandUnsub = null;
   clearInterval(posTimer);
   if (ssStream) { ssStream.getTracks().forEach(t => t.stop()); ssStream = null; }
 
-  // Скрываем оба webview перед входом в новую комнату — updateViewer покажет нужный
   const _wv = $('main-webview'); const _bwv = $('browser-webview');
   if (_wv) { _wv.style.display = 'none'; }
   if (_bwv) { _bwv.style.display = 'none'; }
   viewerSrc = '';
+
+  // Always fetch fresh room data from Firebase
+  const freshSnap = await get(ref(db, `rooms/${roomInit.id}`));
+  const freshData = freshSnap.val();
+  const room = freshData ? { ...freshData, id: roomInit.id } : roomInit;
 
   currentRoom = room;
   isPlaying = false; isBrowserHost = false; lastPos = 0; ignoreSyncUntil = 0;
@@ -605,40 +610,21 @@ function enterRoom(room) {
   });
 
   // ===== SYNC =====
-  // Хост пишет состояние каждые 2 секунды.
-  // Гости читают и применяют с компенсацией задержки.
-  // Порог расхождения: 1 секунда.
+  // Model: anyone can pause/play/seek — writes to Firebase sync node.
+  // Everyone listens and applies, ignoring their own recent writes.
+  // Host also writes position continuously so guests stay in sync.
+
   syncUnsub = onValue(ref(db, `rooms/${room.id}/sync`), snap => {
     const data = snap.val();
     if (!data) return;
-    // Ignore sync written by ourselves recently
-    if (data.updatedBy === user.uid && Date.now() - (data.ts||0) < 2000) return;
+    // Ignore our own writes for 3 seconds
+    if (data.updatedBy === user.uid) return;
     if (Date.now() < ignoreSyncUntil) return;
     applySync(data);
   });
 
-  // Commands from guests — host listens and applies to player
-  if (commandUnsub) { commandUnsub(); commandUnsub = null; }
+  // Host continuously writes position to Firebase so guests follow along
   if (isHost) {
-    commandUnsub = onValue(ref(db, `rooms/${room.id}/command`), snap => {
-      const cmd = snap.val();
-      if (!cmd || !cmd.action) return;
-      // Ignore old commands (older than 3 seconds)
-      if (Date.now() - (cmd.ts || 0) > 3000) return;
-      const wv = $('main-webview');
-      if (!wv || wv.style.display === 'none') return;
-      if (cmd.action === 'pause') {
-        wv.executeJavaScript('document.querySelector("video")?.pause()').catch(() => {});
-      } else if (cmd.action === 'play') {
-        wv.executeJavaScript('document.querySelector("video")?.play()').catch(() => {});
-      } else if (cmd.action === 'seek' && cmd.position !== undefined) {
-        wv.executeJavaScript(`(function(){var v=document.querySelector('video');if(v)v.currentTime=${cmd.position};})();`).catch(() => {});
-      }
-    });
-  }
-
-  if (isHost) {
-    // HOST: reads player state every 2s, writes to Firebase only when guests present
     posTimer = setInterval(async () => {
       if (!currentRoom) return;
       const wv = $('main-webview');
@@ -654,22 +640,17 @@ function enterRoom(room) {
         if (!result) return;
         lastPos = result.t;
         isPlaying = result.p;
-        // Only write if guests are present
-        const partsSnap = await get(ref(db, `rooms/${currentRoom.id}/participants`));
-        const partsCount = partsSnap.val() ? Object.keys(partsSnap.val()).length : 0;
-        if (partsCount > 1) {
-          await set(ref(db, `rooms/${currentRoom.id}/sync`), {
-            playing: result.p,
-            position: result.t,
-            duration: result.d,
-            ts: Date.now(),
-            updatedBy: user.uid
-          });
-        }
+        await set(ref(db, `rooms/${currentRoom.id}/sync`), {
+          playing: result.p,
+          position: result.t,
+          duration: result.d,
+          ts: Date.now(),
+          updatedBy: user.uid
+        });
       } catch {}
     }, 2000);
   } else {
-    // GUEST: just track local position, sync is applied from Firebase listener
+    // Guest: track local position
     posTimer = setInterval(async () => {
       if (!currentRoom) return;
       const pos = await getVideoPosition();
@@ -777,10 +758,18 @@ async function updateViewer() {
 async function onWebviewReady() {
   if (!currentRoom) return;
   if (!isHost) {
-    // Apply last sync state
+    // Fetch fresh sync and apply immediately with short delay for player to load
     const snap = await get(ref(db, `rooms/${currentRoom.id}/sync`));
     const data = snap.val();
-    if (data) setTimeout(() => applySync(data), 2000);
+    if (data) {
+      // Try at 1.5s and again at 4s to make sure it sticks
+      setTimeout(() => applySync(data), 1500);
+      setTimeout(async () => {
+        const snap2 = await get(ref(db, `rooms/${currentRoom.id}/sync`));
+        const d2 = snap2.val();
+        if (d2) applySync(d2);
+      }, 4000);
+    }
 
     // Inject listener — when guest presses pause/play on YouTube, send command to host
     setTimeout(() => {
@@ -837,32 +826,31 @@ function startGuestEventPoll() {
       if (state.paused !== lastPaused) {
         lastPaused = state.paused;
         await syncFirebase(!state.paused, state.t);
-        ignoreSyncUntil = Date.now() + 2500;
       }
     } catch {}
   }, 500);
 }
 
-// ===== SYNC FIREBASE (anyone can call) =====
+// ===== SYNC FIREBASE — anyone calls this on pause/play/seek =====
 async function syncFirebase(playing, pos) {
   if (!currentRoom || !user) return;
-  ignoreSyncUntil = Date.now() + 2500;
+  const position = pos !== undefined ? pos : lastPos;
   isPlaying = playing;
   // Apply locally immediately
   const wv = $('main-webview');
   if (wv && wv.style.display !== 'none') {
     try {
       if (playing) {
-        wv.executeJavaScript('document.querySelector("video")?.play()').catch(()=>{});
+        wv.executeJavaScript(`(function(){var v=document.querySelector('video');if(v){v.play().catch(function(){});}})();`).catch(()=>{});
       } else {
-        wv.executeJavaScript('document.querySelector("video")?.pause()').catch(()=>{});
+        wv.executeJavaScript(`(function(){var v=document.querySelector('video');if(v){v.pause();}})();`).catch(()=>{});
       }
     } catch {}
   }
-  // Write to Firebase so others apply it
+  // Write to Firebase — others will read and apply
   await set(ref(db, `rooms/${currentRoom.id}/sync`), {
     playing,
-    position: pos !== undefined ? pos : lastPos,
+    position,
     ts: Date.now(),
     updatedBy: user.uid
   });
@@ -871,16 +859,11 @@ async function syncFirebase(playing, pos) {
 // ===== APPLY SYNC (для всех кроме того кто написал) =====
 function applySync(data) {
   if (!data) return;
-  // Host never applies sync from Firebase — host IS the source of truth
-  if (isHost) return;
-  // Ignore if we wrote this ourselves recently
-  if (data.updatedBy === user.uid && Date.now() - (data.ts||0) < 2000) return;
-
   isPlaying = data.playing;
   const wv = $('main-webview');
   if (!wv || wv.style.display === 'none') return;
 
-  // Compensate for transmission delay
+  // Compensate for network delay
   let targetPos = data.position || 0;
   if (data.playing && data.ts) {
     targetPos += (Date.now() - data.ts) / 1000;
@@ -893,7 +876,6 @@ function applySync(data) {
           var v = document.querySelector('video');
           if (!v) return;
           var t = ${targetPos};
-          // Only seek if drift > 3 seconds — prevents micro-jumps
           if (Math.abs(v.currentTime - t) > 3) v.currentTime = t;
           if (v.paused) v.play().catch(function(){});
         })();
@@ -905,7 +887,6 @@ function applySync(data) {
           if (!v) return;
           var t = ${targetPos};
           if (!v.paused) v.pause();
-          // Only seek if drift > 3 seconds
           if (Math.abs(v.currentTime - t) > 3) v.currentTime = t;
         })();
       `).catch(()=>{});
