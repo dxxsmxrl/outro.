@@ -952,48 +952,30 @@ on('btn-apply-browser', 'click', () => applyChange(undefined, undefined, 'browse
 async function applyChange(videoId, title, source, url) {
   if (!currentRoom) return;
   const src = source || changeSource;
+  const roomId = currentRoom.id;
 
-  // Firebase update() doesn't support null — use remove() for fields we want to clear
-  const { update } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-  const roomRef = ref(db, `rooms/${currentRoom.id}`);
+  // Write each field individually — no null, no batch update
+  await set(ref(db, `rooms/${roomId}/source`), src);
+  await set(ref(db, `rooms/${roomId}/title`), title || currentRoom.title);
 
-  const fieldUpdates = { source: src, title: title || currentRoom.title };
-
-  // Use a single update call with undefined to remove fields
-  // Firebase removes keys that are explicitly set to undefined in multi-path update
   if (src === 'browser') {
     isBrowserHost = true;
-    const updates = {};
-    updates[`rooms/${currentRoom.id}/source`] = src;
-    updates[`rooms/${currentRoom.id}/title`] = title || currentRoom.title;
-    updates[`rooms/${currentRoom.id}/videoId`] = null;
-    updates[`rooms/${currentRoom.id}/url`] = null;
-    const { update: rootUpdate } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-    await rootUpdate(ref(db, '/'), updates);
+    await remove(ref(db, `rooms/${roomId}/videoId`));
+    await remove(ref(db, `rooms/${roomId}/url`));
   } else if (videoId) {
-    const updates = {};
-    updates[`rooms/${currentRoom.id}/source`] = src;
-    updates[`rooms/${currentRoom.id}/title`] = title || currentRoom.title;
-    updates[`rooms/${currentRoom.id}/videoId`] = videoId;
-    updates[`rooms/${currentRoom.id}/url`] = null;
-    const { update: rootUpdate } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-    await rootUpdate(ref(db, '/'), updates);
+    await set(ref(db, `rooms/${roomId}/videoId`), videoId);
+    await remove(ref(db, `rooms/${roomId}/url`));
   } else if (url) {
-    const updates = {};
-    updates[`rooms/${currentRoom.id}/source`] = src;
-    updates[`rooms/${currentRoom.id}/title`] = title || currentRoom.title;
-    updates[`rooms/${currentRoom.id}/url`] = url.startsWith('http') ? url : `https://${url}`;
-    updates[`rooms/${currentRoom.id}/videoId`] = null;
-    const { update: rootUpdate } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-    await rootUpdate(ref(db, '/'), updates);
-  } else {
-    await update(roomRef, fieldUpdates);
+    await set(ref(db, `rooms/${roomId}/url`), url.startsWith('http') ? url : `https://${url}`);
+    await remove(ref(db, `rooms/${roomId}/videoId`));
   }
 
-  await set(ref(db, `rooms/${currentRoom.id}/sync`), { playing: false, position: 0, ts: Date.now() });
+  await set(ref(db, `rooms/${roomId}/sync`), { playing: false, position: 0, ts: Date.now() });
   isPlaying = false;
   closeModal();
-  $('change-yt-input').value = ''; $('change-yt-results').innerHTML = ''; $('change-link-input').value = '';
+  $('change-yt-input').value = '';
+  $('change-yt-results').innerHTML = '';
+  $('change-link-input').value = '';
 }
 
 // ===== SCREENSHARE =====
