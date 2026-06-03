@@ -705,15 +705,18 @@ async function openUserProfileByName(name, uid) {
 function stopWebviewAudio(webview) {
   if (!webview) return;
   try {
-    webview.executeJavaScript(`
-      (function() {
-        document.querySelectorAll('video, audio').forEach(function(m) {
-          m.pause(); m.src = ''; m.load();
-        });
-      })();
-    `).catch(() => {});
+    const src = webview.getAttribute('src');
+    if (src && src !== 'about:blank') {
+      webview.executeJavaScript(`
+        (function() {
+          document.querySelectorAll('video, audio').forEach(function(m) {
+            m.pause(); m.src = ''; m.load();
+          });
+        })();
+      `).catch(() => {});
+    }
   } catch {}
-  webview.setAttribute('src', 'about:blank');
+  try { webview.setAttribute('src', 'about:blank'); } catch {}
 }
 
 
