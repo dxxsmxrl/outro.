@@ -711,23 +711,41 @@ function updateViewer() {
   if (ssv) ssv.style.display = 'none';
 
   if (currentRoom.source === 'youtube' && currentRoom.videoId) {
+    // Убиваем браузер если был активен
+    if (bwv.getAttribute('src') && bwv.getAttribute('src') !== 'about:blank') {
+      bwv.setAttribute('src', 'about:blank');
+    }
     const src = `https://www.youtube.com/watch?v=${currentRoom.videoId}`;
     if (viewerSrc !== src) {
       wv.setAttribute('src', src); viewerSrc = src;
       wv.addEventListener('dom-ready', onWebviewReady, { once: true });
     }
     wv.style.display = '';
-    // Кнопку управления скрываем — управление через YouTube плеер
   } else if (currentRoom.source === 'browser') {
+    // Убиваем main-webview если был активен
+    if (viewerSrc && viewerSrc !== 'about:blank') {
+      wv.setAttribute('src', 'about:blank'); viewerSrc = '';
+    }
     bwv.style.display = '';
     if (bb) bb.style.display = 'flex';
     setupBrowserSync();
   } else if (currentRoom.url) {
+    // Убиваем браузер если был активен
+    if (bwv.getAttribute('src') && bwv.getAttribute('src') !== 'about:blank') {
+      bwv.setAttribute('src', 'about:blank');
+    }
     const src = currentRoom.url;
     if (viewerSrc !== src) { wv.setAttribute('src', src); viewerSrc = src; }
     wv.style.display = '';
     if (pc) pc.style.display = '';
   } else {
+    // Нет источника — глушим всё
+    if (viewerSrc && viewerSrc !== 'about:blank') {
+      wv.setAttribute('src', 'about:blank'); viewerSrc = '';
+    }
+    if (bwv.getAttribute('src') && bwv.getAttribute('src') !== 'about:blank') {
+      bwv.setAttribute('src', 'about:blank');
+    }
     ph.style.display = '';
   }
 }
@@ -929,7 +947,7 @@ function leaveRoom() {
   const wv = $('main-webview');
   if (wv) { wv.setAttribute('src', 'about:blank'); wv.style.display = 'none'; viewerSrc = ''; }
   const bwv = $('browser-webview');
-  if (bwv) bwv.style.display = 'none';
+  if (bwv) { bwv.setAttribute('src', 'about:blank'); bwv.style.display = 'none'; }
   currentRoom = null; isPlaying = false; isHost = false;
   screen('main');
 }

@@ -1,2 +1,3 @@
-2026/06/03-10:03:50.402 59c0 Creating DB C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\shared_proto_db\metadata since it was missing.
-2026/06/03-10:03:50.409 59c0 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\shared_proto_db\metadata/MANIFEST-000001
+2026/06/03-10:13:17.150 5e4c Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\shared_proto_db\metadata/MANIFEST-000001
+2026/06/03-10:13:17.150 5e4c Recovering log #3
+2026/06/03-10:13:17.150 5e4c Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\shared_proto_db\metadata/000003.log 
