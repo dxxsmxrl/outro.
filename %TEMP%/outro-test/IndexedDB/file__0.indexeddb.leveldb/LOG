@@ -1,13 +1,13 @@
-2026/06/03-10:43:17.775 5d50 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/MANIFEST-000001
-2026/06/03-10:43:17.776 5d50 Recovering log #31
-2026/06/03-10:43:17.776 5d50 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/000031.log 
-2026/06/03-10:43:17.789 1458 Level-0 table #36: started
-2026/06/03-10:43:17.800 1458 Level-0 table #36: 3307 bytes OK
-2026/06/03-10:43:17.802 1458 Delete type=0 #31
-2026/06/03-10:43:17.802 5d50 Manual compaction at level-0 from '\x00\x0b\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x0c\x00\x00\x00' @ 0 : 0; will stop at (end)
-2026/06/03-10:43:59.403 5d50 Compacting 1@1 + 1@2 files
-2026/06/03-10:43:59.415 5d50 Generated table #37@1: 39 keys, 2811 bytes
-2026/06/03-10:43:59.415 5d50 Compacted 1@1 + 1@2 files => 2811 bytes
-2026/06/03-10:43:59.416 5d50 compacted to: files[ 0 0 1 0 0 0 0 ]
-2026/06/03-10:43:59.417 5d50 Delete type=2 #33
-2026/06/03-10:43:59.417 5d50 Delete type=2 #36
+2026/06/03-10:51:01.539 10c0 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/MANIFEST-000001
+2026/06/03-10:51:01.539 10c0 Recovering log #35
+2026/06/03-10:51:01.539 10c0 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/000035.log 
+2026/06/03-10:51:01.547 4148 Level-0 table #40: started
+2026/06/03-10:51:01.560 4148 Level-0 table #40: 3171 bytes OK
+2026/06/03-10:51:01.562 4148 Delete type=0 #35
+2026/06/03-10:51:01.562 10c0 Manual compaction at level-0 from '\x00\x0c\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x0d\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/06/03-10:51:41.565 4ccc Compacting 1@1 + 1@2 files
+2026/06/03-10:51:41.585 4ccc Generated table #41@1: 41 keys, 2892 bytes
+2026/06/03-10:51:41.586 4ccc Compacted 1@1 + 1@2 files => 2892 bytes
+2026/06/03-10:51:41.588 4ccc compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/06/03-10:51:41.588 4ccc Delete type=2 #37
+2026/06/03-10:51:41.589 4ccc Delete type=2 #40

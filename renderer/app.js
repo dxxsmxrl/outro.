@@ -704,16 +704,25 @@ async function openUserProfileByName(name, uid) {
 // ===== STOP WEBVIEW AUDIO =====
 function stopWebviewAudio(webview) {
   if (!webview) return;
-  // Только паузим медиа — не трогаем src чтобы не вызывать ERR_ABORTED
+  // Мьютим через Electron IPC — единственный надёжный способ
+  const partition = webview.getAttribute('partition');
+  if (partition && window.electronAPI?.mutePartition) {
+    window.electronAPI.mutePartition(partition, true);
+  }
+  // Дополнительно паузим через JS
   try {
     webview.executeJavaScript(`
-      (function() {
-        document.querySelectorAll('video, audio').forEach(function(m) {
-          try { m.pause(); m.volume = 0; } catch(e) {}
-        });
-      })();
+      document.querySelectorAll('video,audio').forEach(function(m){try{m.pause();m.volume=0;}catch(e){}});
     `).catch(() => {});
   } catch {}
+}
+
+function unmuteWebview(webview) {
+  if (!webview) return;
+  const partition = webview.getAttribute('partition');
+  if (partition && window.electronAPI?.mutePartition) {
+    window.electronAPI.mutePartition(partition, false);
+  }
 }
 
 
@@ -738,14 +747,15 @@ function updateViewer() {
       wv.setAttribute('src', src); viewerSrc = src;
       wv.addEventListener('dom-ready', onWebviewReady, { once: true });
     }
+    unmuteWebview(wv);
     wv.style.display = '';
   } else if (currentRoom.source === 'browser') {
     stopWebviewAudio(wv); wv.style.display = 'none'; viewerSrc = '';
-    // Если webview ещё не грузился — открываем Google как стартовую
     if (!bwv.getAttribute('src') || bwv.getAttribute('src') === 'about:blank') {
       bwv.setAttribute('src', 'https://www.google.com');
       $('browser-address').value = 'https://www.google.com';
     }
+    unmuteWebview(bwv);
     bwv.style.display = '';
     if (bb) bb.style.display = 'flex';
     setupBrowserSync();
@@ -753,6 +763,7 @@ function updateViewer() {
     stopWebviewAudio(bwv); bwv.style.display = 'none';
     const src = currentRoom.url;
     if (viewerSrc !== src) { wv.setAttribute('src', src); viewerSrc = src; }
+    unmuteWebview(wv);
     wv.style.display = '';
     if (pc) pc.style.display = '';
   } else {

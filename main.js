@@ -225,3 +225,25 @@ app.on('web-contents-created', (event, contents) => {
 ipcMain.on('window-navigate-webview', (event, url) => {
   if (mainWindow) mainWindow.webContents.send('do-navigate-webview', url);
 });
+
+// ===== MUTE WEBVIEW BY PARTITION =====
+ipcMain.on('mute-partition', (event, { partition, muted }) => {
+  const allContents = require('electron').webContents.getAllWebContents();
+  for (const wc of allContents) {
+    try {
+      if (wc.getType() === 'webview') {
+        // Match by session partition
+        const ses = wc.session;
+        const targetSes = session.fromPartition(partition);
+        if (ses === targetSes) {
+          wc.setAudioMuted(muted);
+          if (muted) {
+            wc.executeJavaScript(`
+              document.querySelectorAll('video,audio').forEach(function(m){try{m.pause();m.volume=0;}catch(e){}});
+            `).catch(() => {});
+          }
+        }
+      }
+    } catch {}
+  }
+});

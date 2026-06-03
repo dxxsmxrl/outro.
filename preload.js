@@ -14,4 +14,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openFile: (opts) => ipcRenderer.invoke('open-file', opts),
   // New: save file via dialog
   saveFile: (opts) => ipcRenderer.invoke('save-file', opts),
+  // Mute/unmute webview by partition
+  mutePartition: (partition, muted) => ipcRenderer.send('mute-partition', { partition, muted }),
 });
