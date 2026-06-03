@@ -7,6 +7,63 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@200;300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ===== NOTIFICATIONS ===== */
+    .notif-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px 20px; border-bottom: 0.5px solid var(--border);
+      transition: background 0.1s;
+    }
+    .notif-row:hover { background: var(--bg2); }
+    .notif-unread { background: var(--bg2); }
+    .notif-icon { font-size: 14px; color: var(--fg3); flex-shrink: 0; margin-top: 1px; width: 18px; text-align: center; }
+    .notif-text { color: var(--fg); font-size: 13px; line-height: 1.4; }
+    .notif-time { color: var(--fg3); font-size: 9px; font-family: var(--mono); letter-spacing: 1px; margin-top: 3px; }
+
+    /* Badge with count */
+    .nav-badge-count {
+      position: absolute; top: 4px; right: 4px;
+      min-width: 14px; height: 14px; border-radius: 7px;
+      background: var(--red); color: #fff;
+      font-size: 8px; font-family: var(--mono);
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 3px;
+    }
+
+    /* ===== FILE MESSAGES ===== */
+    .msg-img-wrap, .msg-video-wrap, .msg-file-wrap, .msg-audio-wrap { margin-top: 4px; max-width: 200px; }
+    .chat-msg-img { max-width: 180px; border-radius: 6px; display: block; cursor: zoom-in; transition: opacity 0.12s; }
+    .chat-msg-img:hover { opacity: 0.88; }
+    .chat-msg-video { max-width: 180px; max-height: 120px; border-radius: 6px; display: block; cursor: pointer; background: #000; }
+    .chat-msg-audio { width: 180px; height: 32px; border-radius: 6px; }
+    .msg-file-wrap { display: flex; align-items: center; gap: 8px; background: var(--bg2); border: 0.5px solid var(--border); border-radius: 7px; padding: 8px 10px; cursor: pointer; transition: border-color 0.12s; }
+    .msg-file-wrap:hover { border-color: var(--border3); }
+    .msg-file-icon { font-size: 18px; color: var(--fg3); flex-shrink: 0; }
+    .msg-file-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .msg-file-name { color: var(--fg); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
+    .msg-file-size { color: var(--fg3); font-size: 9px; font-family: var(--mono); }
+    .msg-file-actions { display: flex; gap: 8px; margin-top: 4px; }
+    .msg-action-btn { color: var(--fg3); font-size: 9px; font-family: var(--mono); letter-spacing: 1px; cursor: pointer; transition: color 0.1s; user-select: none; }
+    .msg-action-btn:hover { color: var(--fg); }
+
+    /* ===== TYPING ===== */
+    #typing-indicator { display: none; padding: 0 12px 4px; color: var(--fg3); font-size: 10px; font-family: var(--mono); letter-spacing: 1px; font-style: italic; min-height: 16px; }
+
+    /* ===== QUEUE ===== */
+    .queue-panel { border-top: 0.5px solid var(--border); flex-shrink: 0; }
+    .queue-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; user-select: none; }
+    .queue-header-label { flex: 1; font-size: 9px; font-family: var(--mono); letter-spacing: 2px; color: var(--fg3); }
+    .queue-toggle-icon { color: var(--fg3); font-size: 10px; transition: transform 0.15s; }
+    .queue-toggle-icon.open { transform: rotate(180deg); }
+    .queue-body { max-height: 160px; overflow-y: auto; padding: 0 12px 8px; }
+    .queue-actions { display: flex; gap: 6px; padding: 0 12px 8px; }
+    .btn-queue-action { flex: 1; background: var(--bg2); border: 0.5px solid var(--border); border-radius: 5px; padding: 5px 8px; color: var(--fg3); font-size: 9px; font-family: var(--mono); letter-spacing: 1px; cursor: pointer; transition: border-color 0.12s, color 0.12s; }
+    .btn-queue-action:hover { border-color: var(--fg2); color: var(--fg); }
+    .btn-queue-action:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ===== CHAT MSG HOVER (name clickable) ===== */
+    .chat-msg-user:hover { color: var(--fg2) !important; text-decoration: underline; }
+  </style>
 </head>
 <body>
 <div id="app">
@@ -60,6 +117,10 @@
         <button class="nav-btn" data-tab="friends" title="Друзья">
           ⁋
           <span class="nav-badge" id="friends-badge" style="display:none"></span>
+        </button>
+        <button class="nav-btn" data-tab="notifications" title="Уведомления" style="position:relative">
+          ◎
+          <span class="nav-badge-count" id="notifs-badge" style="display:none"></span>
         </button>
         <button class="nav-btn" data-tab="profile" title="Профиль">◯</button>
       </nav>
@@ -119,18 +180,27 @@
         <div id="friends-list"><div class="empty-state"><div class="empty-text">ПОКА НИКОГО</div></div></div>
       </div>
 
+      <!-- NOTIFICATIONS TAB -->
+      <div class="tab-content" id="tab-notifications">
+        <div class="section-label" style="padding:16px 20px 8px">УВЕДОМЛЕНИЯ</div>
+        <div id="notifs-list" style="flex:1;overflow-y:auto">
+          <div class="empty-state"><div class="empty-icon">◎</div><div class="empty-text">НЕТ УВЕДОМЛЕНИЙ</div></div>
+        </div>
+      </div>
+
       <!-- PROFILE TAB -->
       <div class="tab-content" id="tab-profile">
         <div class="profile-header">
           <div class="profile-avatar-wrap">
-            <div class="profile-avatar" id="profile-avatar">?</div>
+            <div class="profile-avatar" id="profile-avatar">
+              <span id="profile-avatar-letter">?</span>
+            </div>
             <div class="profile-avatar-img" id="profile-avatar-img" style="display:none"></div>
             <button class="avatar-edit-btn" id="btn-edit-avatar">✎</button>
             <input type="file" id="profile-avatar-input" accept="image/*" style="display:none" />
           </div>
           <div class="profile-info">
             <div class="profile-name" id="profile-name">—</div>
-            
           </div>
         </div>
         <div class="stats-grid">
@@ -192,13 +262,28 @@
         </div>
       </div>
 
-      <!-- CHAT -->
+      <!-- CHAT + QUEUE -->
       <div class="room-chat">
         <div class="chat-messages" id="chat-messages"></div>
+        <div id="typing-indicator"></div>
         <div class="chat-input-row">
-          <button class="chat-attach-btn" id="btn-send-image" title="Фото">▨</button>
+          <button class="chat-attach-btn" id="btn-send-image" title="Файл">▨</button>
           <input type="text" class="chat-input" id="chat-input" placeholder="Написать..." />
           <button class="chat-send-btn" id="btn-send">➤</button>
+        </div>
+        <!-- QUEUE PANEL -->
+        <div class="queue-panel">
+          <div class="queue-header" id="queue-header" onclick="this.nextElementSibling.nextElementSibling.classList.toggle('hidden');this.querySelector('.queue-toggle-icon').classList.toggle('open')">
+            <span class="queue-header-label">▤ ОЧЕРЕДЬ</span>
+            <span class="queue-toggle-icon">▾</span>
+          </div>
+          <div class="queue-actions">
+            <button class="btn-queue-action" id="btn-add-to-queue">+ ДОБАВИТЬ</button>
+            <button class="btn-queue-action" id="btn-skip" style="opacity:0.4">⏭ СКИП</button>
+          </div>
+          <div class="queue-body" id="queue-list">
+            <div style="color:var(--fg3);font-size:10px;font-family:var(--mono);letter-spacing:1px;padding:4px 0">ОЧЕРЕДЬ ПУСТА</div>
+          </div>
         </div>
       </div>
     </div>
@@ -227,7 +312,7 @@
     <div class="modal modal-wide" id="modal-change-video" style="display:none">
       <div class="modal-header">
         <span class="modal-title">СМЕНИТЬ ВИДЕО</span>
-        <button class="tb-icon-btn modal-close" data-modal="modal-change-video">✕</button>
+        <button class="tb-icon-btn modal-close">✕</button>
       </div>
       <div class="modal-body">
         <div class="source-tabs" id="change-source-tabs">
@@ -260,7 +345,7 @@
     <div class="modal" id="modal-participants" style="display:none">
       <div class="modal-header">
         <span class="modal-title">УЧАСТНИКИ · <span id="modal-parts-count">0</span></span>
-        <button class="tb-icon-btn modal-close" data-modal="modal-participants">✕</button>
+        <button class="tb-icon-btn modal-close">✕</button>
       </div>
       <div class="modal-body" id="modal-parts-list"></div>
     </div>
@@ -269,14 +354,16 @@
     <div class="modal" id="modal-invite" style="display:none">
       <div class="modal-header">
         <span class="modal-title">ПРИГЛАСИТЬ</span>
-        <button class="tb-icon-btn modal-close" data-modal="modal-invite">✕</button>
+        <button class="tb-icon-btn modal-close">✕</button>
       </div>
       <div class="modal-body">
+        <div class="section-label" style="margin-bottom:8px">ПРИГЛАСИТЬ ДРУЗЕЙ</div>
+        <div id="invite-friends-list" style="margin-bottom:16px;max-height:200px;overflow-y:auto"></div>
         <div class="invite-box">
           <div class="section-label">ССЫЛКА НА ВЕБ-ВЕРСИЮ</div>
           <div class="invite-link">outro-web-znla.vercel.app</div>
         </div>
-        <button class="btn-primary" id="btn-copy-invite">КОПИРОВАТЬ</button>
+        <button class="btn-primary" id="btn-copy-invite" style="margin-top:10px">КОПИРОВАТЬ ССЫЛКУ</button>
       </div>
     </div>
 
@@ -284,7 +371,7 @@
     <div class="modal modal-wide" id="modal-screenshare" style="display:none">
       <div class="modal-header">
         <span class="modal-title">ВЫБЕРИ ИСТОЧНИК</span>
-        <button class="tb-icon-btn modal-close" data-modal="modal-screenshare">✕</button>
+        <button class="tb-icon-btn modal-close">✕</button>
       </div>
       <div class="modal-body">
         <div id="ss-sources" class="ss-grid"></div>
@@ -295,7 +382,7 @@
     <div class="modal" id="modal-account" style="display:none">
       <div class="modal-header">
         <span class="modal-title">АККАУНТ</span>
-        <button class="tb-icon-btn modal-close" data-modal="modal-account">✕</button>
+        <button class="tb-icon-btn modal-close">✕</button>
       </div>
       <div class="modal-body">
         <div class="section-label">НИК</div>
@@ -311,7 +398,7 @@
     <div class="modal" id="modal-friend-profile" style="display:none">
       <div class="modal-header">
         <span class="modal-title">ПРОФИЛЬ</span>
-        <button class="tb-icon-btn modal-close" data-modal="modal-friend-profile">✕</button>
+        <button class="tb-icon-btn modal-close">✕</button>
       </div>
       <div class="modal-body" style="text-align:center;padding-top:16px">
         <div class="fp-avatar-wrap">
@@ -319,17 +406,18 @@
           <div class="fp-avatar-img" id="fp-avatar-img" style="display:none"></div>
         </div>
         <div class="fp-name" id="fp-name">—</div>
-        
-        <button class="btn-primary" id="btn-add-friend" style="margin-top:24px">ДОБАВИТЬ В ДРУЗЬЯ</button>
+        <div id="fp-friends-count" style="color:var(--fg3);font-size:10px;font-family:var(--mono);letter-spacing:1px;margin-top:4px">0 друзей</div>
+        <button class="btn-primary" id="btn-add-friend" style="margin-top:20px">ДОБАВИТЬ В ДРУЗЬЯ</button>
+        <button class="btn-ghost" id="btn-fp-invite-room" style="margin-top:8px;display:none">ПРИГЛАСИТЬ В КОМНАТУ</button>
         <div id="fp-already" style="display:none;color:var(--fg3);font-family:var(--mono);font-size:11px;letter-spacing:2px;margin-top:16px">УЖЕ В ДРУЗЬЯХ</div>
       </div>
     </div>
 
-    <!-- CREATE ROOM (quick from platform btn) -->
+    <!-- CREATE ROOM (quick) -->
     <div class="modal" id="modal-quick-create" style="display:none">
       <div class="modal-header">
         <span class="modal-title" id="quick-create-title">НОВАЯ КОМНАТА</span>
-        <button class="tb-icon-btn modal-close" data-modal="modal-quick-create">✕</button>
+        <button class="tb-icon-btn modal-close">✕</button>
       </div>
       <div class="modal-body">
         <div class="section-label">НАЗВАНИЕ</div>

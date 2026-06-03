@@ -1,4 +1,4 @@
-import { db, auth, ref, push, onValue, set, remove, serverTimestamp, off, get,
+import { db, auth, ref, push, onValue, set, remove, serverTimestamp, get,
   createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,
   onAuthStateChanged, updatePassword } from './firebase.js';
 
@@ -7,29 +7,28 @@ const YT_KEY = 'AIzaSyDtbHk4XNsk7ayDF4IyqU5T8idw8BfLV3o';
 // ===== STATE =====
 let user = null, myName = '', myAvatar = null;
 let currentRoom = null, isPlaying = false;
-let isSyncing = false, syncTimer = null;
+let lastSyncTs = 0;
 let posTimer = null, lastPos = 0;
 let isBrowserHost = false, ignoreBrowserSync = false;
 let friends = [], incomingReqs = [];
 let selectedFriend = null;
-let createSource = 'youtube', createPrivacy = 'public';
 let changeSource = 'youtube';
 let quickSource = 'youtube', quickPrivacy = 'public';
 let activeModal = null;
 let ssStream = null;
-let theme = 'dark'; // dark | light | monke
-let viewerSrc = ''; // track current webview src to prevent reloads
+let theme = 'dark';
+let viewerSrc = '';
 let messagesUnsub = null, participantsUnsub = null;
 let syncUnsub = null, roomDataUnsub = null;
 let roomsUnsub = null, browserSyncUnsub = null;
+let typingTimer = null, typingUnsub = null, queueUnsub = null;
+let notifsUnsub = null;
+let unreadNotifs = 0;
 
 // ===== DOM HELPERS =====
 const $ = id => document.getElementById(id);
 const on = (id, ev, fn) => $(id)?.addEventListener(ev, fn);
 const txt = (id, v) => { const e = $(id); if (e) e.textContent = v; };
-const show = id => { const e = $(id); if (e) e.style.display = ''; };
-const hide = id => { const e = $(id); if (e) e.style.display = 'none'; };
-const showFlex = id => { const e = $(id); if (e) e.style.display = 'flex'; };
 
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function escA(s) { return String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
@@ -43,6 +42,7 @@ function tab(name) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   $(`tab-${name}`)?.classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  if (name === 'notifications') markNotifsRead();
 }
 
 // ===== MODALS =====
@@ -126,7 +126,7 @@ async function doAuth() {
       await signInWithEmailAndPassword(auth, email, pwd);
     } else {
       const c = await createUserWithEmailAndPassword(auth, email, pwd);
-      await set(ref(db, `users/${c.user.uid}`), { name: uname, email, online: true });
+      await set(ref(db, `users/${c.user.uid}`), { name: uname, email, online: true, friendsCount: 0 });
     }
   } catch(e) {
     txt('auth-error',
@@ -142,6 +142,7 @@ async function doAuth() {
 
 on('btn-logout-item', 'click', async () => {
   if (user) await set(ref(db, `users/${user.uid}/online`), false);
+  if (notifsUnsub) notifsUnsub();
   await signOut(auth);
 });
 
@@ -151,11 +152,12 @@ function initApp() {
   loadRooms();
   loadFriends();
   loadIncomingRequests();
+  subscribeNotifications();
 }
 
 function updateProfileUI() {
   txt('profile-name', myName);
-  txt('profile-avatar', myName[0]?.toUpperCase() || '?');
+  txt('profile-avatar-letter', myName[0]?.toUpperCase() || '?');
   txt('sidebar-avatar', myName[0]?.toUpperCase() || '?');
   $('account-name-input').value = myName;
   if (myAvatar) {
@@ -167,12 +169,8 @@ function updateProfileUI() {
 function setAvatarImg(elId, dataUrl) {
   const el = $(elId);
   if (!el) return;
-  if (dataUrl) {
-    el.style.backgroundImage = `url(${dataUrl})`;
-    el.style.display = '';
-  } else {
-    el.style.display = 'none';
-  }
+  if (dataUrl) { el.style.backgroundImage = `url(${dataUrl})`; el.style.display = ''; }
+  else el.style.display = 'none';
 }
 
 // ===== AVATAR UPLOAD =====
@@ -200,6 +198,128 @@ on('btn-edit-avatar', 'click', e => { e.stopPropagation(); $('profile-avatar-inp
 document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
   btn.addEventListener('click', () => tab(btn.dataset.tab));
 });
+
+// ===== NOTIFICATIONS =====
+function subscribeNotifications() {
+  if (!user) return;
+  if (notifsUnsub) notifsUnsub();
+  notifsUnsub = onValue(ref(db, `users/${user.uid}/notifications`), snap => {
+    const data = snap.val();
+    const notifs = data
+      ? Object.entries(data).map(([id,v]) => ({id,...v})).sort((a,b) => (b.ts||0)-(a.ts||0))
+      : [];
+    unreadNotifs = notifs.filter(n => !n.read).length;
+    const badge = $('notifs-badge');
+    if (badge) {
+      badge.style.display = unreadNotifs > 0 ? '' : 'none';
+      badge.textContent = unreadNotifs > 9 ? '9+' : unreadNotifs || '';
+    }
+    renderNotifications(notifs);
+  });
+}
+
+async function markNotifsRead() {
+  if (!user) return;
+  const snap = await get(ref(db, `users/${user.uid}/notifications`));
+  const data = snap.val();
+  if (!data) return;
+  const updates = {};
+  Object.entries(data).forEach(([id, v]) => {
+    if (!v.read) updates[`users/${user.uid}/notifications/${id}/read`] = true;
+  });
+  if (Object.keys(updates).length) {
+    const { update } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    const rootRef = ref(db, '/');
+    await update(rootRef, updates);
+  }
+}
+
+function renderNotifications(notifs) {
+  const el = $('notifs-list');
+  if (!el) return;
+  if (!notifs.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">◎</div><div class="empty-text">НЕТ УВЕДОМЛЕНИЙ</div></div>';
+    return;
+  }
+  el.innerHTML = notifs.map(n => {
+    const icons = { friend_request: '⁋', room_invite: '▶', watching: '◉', system: '◎' };
+    const icon = icons[n.type] || '◎';
+    const unreadDot = !n.read ? '<span style="width:6px;height:6px;border-radius:50%;background:var(--fg);flex-shrink:0;margin-left:auto"></span>' : '';
+    let actionBtn = '';
+    if (n.type === 'friend_request' && n.fromUid) {
+      actionBtn = `<div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn-accept" data-notif-accept="${n.id}" data-uid="${n.fromUid}" data-name="${escA(n.fromName||'')}">ПРИНЯТЬ</button>
+        <button class="btn-sm" data-notif-decline="${n.id}" data-uid="${n.fromUid}">ОТКЛОНИТЬ</button>
+      </div>`;
+    }
+    if (n.type === 'room_invite' && n.roomId) {
+      actionBtn = `<div style="margin-top:8px">
+        <button class="btn-accept" data-notif-join="${n.roomId}" data-notif-id="${n.id}">ВОЙТИ В КОМНАТУ</button>
+      </div>`;
+    }
+    return `<div class="notif-row ${n.read ? '' : 'notif-unread'}" data-nid="${n.id}">
+      <div class="notif-icon">${icon}</div>
+      <div style="flex:1;min-width:0">
+        <div class="notif-text">${esc(n.text||'')}</div>
+        <div class="notif-time">${timeAgo(n.ts)}</div>
+        ${actionBtn}
+      </div>
+      ${unreadDot}
+    </div>`;
+  }).join('');
+
+  // Friend request actions from notifs
+  el.querySelectorAll('[data-notif-accept]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await acceptReq(btn.dataset.uid, btn.dataset.name);
+      await remove(ref(db, `users/${user.uid}/notifications/${btn.dataset.notifAccept}`));
+    });
+  });
+  el.querySelectorAll('[data-notif-decline]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await declineReq(btn.dataset.uid);
+      await remove(ref(db, `users/${user.uid}/notifications/${btn.dataset.notifDecline}`));
+    });
+  });
+  el.querySelectorAll('[data-notif-join]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const roomId = btn.dataset.notifJoin;
+      const nid = btn.dataset.notifId;
+      // Mark read
+      await set(ref(db, `users/${user.uid}/notifications/${nid}/read`), true);
+      // Get room data and enter
+      const snap = await get(ref(db, `rooms/${roomId}`));
+      const roomData = snap.val();
+      if (roomData) {
+        closeModal();
+        enterRoom({ id: roomId, ...roomData });
+      } else {
+        alert('Комната уже не существует');
+      }
+    });
+  });
+}
+
+async function sendNotification(toUid, notif) {
+  // notif: { type, text, ...extra }
+  await push(ref(db, `users/${toUid}/notifications`), {
+    ...notif,
+    ts: Date.now(),
+    read: false
+  });
+}
+
+function timeAgo(ts) {
+  if (!ts) return '';
+  const diff = Date.now() - ts;
+  const m = Math.floor(diff / 60000);
+  const h = Math.floor(diff / 3600000);
+  const d = Math.floor(diff / 86400000);
+  if (m < 1) return 'только что';
+  if (m < 60) return `${m} мин назад`;
+  if (h < 24) return `${h} ч назад`;
+  return `${d} д назад`;
+}
 
 // ===== ROOMS =====
 function loadRooms() {
@@ -244,11 +364,7 @@ document.querySelectorAll('.platform-btn').forEach(btn => {
     quickSource = btn.dataset.platform;
     const titles = { youtube: 'ПОИСК YOUTUBE', twitch: 'TWITCH', browser: 'БРАУЗЕР', file: 'ФАЙЛ' };
     txt('quick-create-title', titles[quickSource] || 'НОВАЯ КОМНАТА');
-    if (quickSource === 'youtube') {
-      // open YT search directly
-      openModal('modal-yt-search');
-      return;
-    }
+    if (quickSource === 'youtube') { openModal('modal-yt-search'); return; }
     $('quick-link-section').style.display = (quickSource === 'twitch' || quickSource === 'file') ? '' : 'none';
     if (quickSource === 'twitch') { txt('quick-link-label', 'ССЫЛКА НА КАНАЛ'); $('quick-link-input').placeholder = 'twitch.tv/channel'; }
     if (quickSource === 'file') { txt('quick-link-label', 'ПРЯМАЯ ССЫЛКА НА MP4'); $('quick-link-input').placeholder = 'https://...'; }
@@ -256,43 +372,28 @@ document.querySelectorAll('.platform-btn').forEach(btn => {
   });
 });
 
-on('btn-create-room', 'click', () => {
-  quickSource = 'youtube';
-  $('quick-link-section').style.display = 'none';
-  txt('quick-create-title', 'НОВАЯ КОМНАТА');
-  openModal('modal-yt-search');
-});
+on('btn-create-room', 'click', () => { quickSource = 'youtube'; $('quick-link-section').style.display = 'none'; txt('quick-create-title', 'НОВАЯ КОМНАТА'); openModal('modal-yt-search'); });
+on('btn-create-first', 'click', () => { quickSource = 'youtube'; openModal('modal-yt-search'); });
 
-on('btn-create-first', 'click', () => {
-  quickSource = 'youtube';
-  openModal('modal-yt-search');
-});
-
-// Privacy tabs in quick create
 document.querySelectorAll('#modal-quick-create .privacy-tab').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('#modal-quick-create .privacy-tab').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    quickPrivacy = btn.dataset.privacy;
+    btn.classList.add('active'); quickPrivacy = btn.dataset.privacy;
   });
 });
 
 on('btn-do-quick-create', 'click', async () => {
   if (!user) return;
   const title = $('quick-title-input').value.trim() || 'Новая комната';
-  const roomData = { title, source: quickSource, host: myName, privacy: quickPrivacy, createdAt: Date.now() };
+  const roomData = { title, source: quickSource, host: myName, hostUid: user.uid, privacy: quickPrivacy, createdAt: Date.now() };
   if (quickSource === 'twitch' || quickSource === 'file') {
     const url = $('quick-link-input').value.trim();
     if (!url) return;
     roomData.url = url.startsWith('http') ? url : `https://${url}`;
   }
-  if (quickSource === 'browser') {
-    // no extra data needed
-  }
   const nr = await push(ref(db, 'rooms'), roomData);
   closeModal();
-  $('quick-title-input').value = '';
-  $('quick-link-input').value = '';
+  $('quick-title-input').value = ''; $('quick-link-input').value = '';
   enterRoom({ id: nr.key, ...roomData });
 });
 
@@ -302,8 +403,7 @@ on('btn-do-yt-search', 'click', () => ytSearch($('yt-search-input').value));
 on('yt-search-input', 'keydown', e => { if (e.key === 'Enter') ytSearch($('yt-search-input').value); });
 on('yt-search-input', 'input', () => { $('btn-clear-yt').style.display = $('yt-search-input').value ? '' : 'none'; });
 on('btn-clear-yt', 'click', () => {
-  $('yt-search-input').value = '';
-  $('btn-clear-yt').style.display = 'none';
+  $('yt-search-input').value = ''; $('btn-clear-yt').style.display = 'none';
   $('yt-search-results').innerHTML = '<div class="empty-state"><div class="empty-text">ВВЕДИТЕ ЗАПРОС</div></div>';
 });
 
@@ -319,11 +419,22 @@ async function ytSearch(query, forChange = false) {
       <div class="yt-result" data-vid="${escA(i.id.videoId)}" data-title="${escA(i.snippet.title)}">
         <img class="yt-thumb" src="${i.snippet.thumbnails.medium.url}" loading="lazy" />
         <div><div class="yt-title">${esc(i.snippet.title)}</div><div class="yt-channel">${esc(i.snippet.channelTitle).toUpperCase()}</div></div>
+        ${forChange ? `<button class="btn-sm" style="flex-shrink:0;margin-left:auto" data-queue-vid="${escA(i.id.videoId)}" data-queue-title="${escA(i.snippet.title)}">+ В ОЧЕРЕДЬ</button>` : ''}
       </div>`).join('');
-    el.querySelectorAll('.yt-result').forEach(el => {
-      el.addEventListener('click', () => {
-        if (forChange) applyChange(el.dataset.vid, el.dataset.title, 'youtube');
-        else createWithVideo(el.dataset.vid, el.dataset.title);
+    if (forChange) {
+      el.querySelectorAll('[data-queue-vid]').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          addToQueue(btn.dataset.queueVid, btn.dataset.queueTitle);
+          btn.textContent = '✓'; btn.disabled = true;
+        });
+      });
+    }
+    el.querySelectorAll('.yt-result').forEach(row => {
+      row.addEventListener('click', e => {
+        if (e.target.closest('[data-queue-vid]')) return;
+        if (forChange) applyChange(row.dataset.vid, row.dataset.title, 'youtube');
+        else createWithVideo(row.dataset.vid, row.dataset.title);
       });
     });
   } catch { el.innerHTML = '<div class="empty-state"><div class="empty-text">ОШИБКА ПОИСКА</div></div>'; }
@@ -331,34 +442,97 @@ async function ytSearch(query, forChange = false) {
 
 async function createWithVideo(videoId, title) {
   if (!user) return;
-  const roomData = { title, source: 'youtube', videoId, host: myName, privacy: quickPrivacy, createdAt: Date.now() };
+  const roomData = { title, source: 'youtube', videoId, host: myName, hostUid: user.uid, privacy: quickPrivacy, createdAt: Date.now() };
   const nr = await push(ref(db, 'rooms'), roomData);
   closeModal();
   $('yt-search-input').value = '';
   $('yt-search-results').innerHTML = '<div class="empty-state"><div class="empty-text">ВВЕДИТЕ ЗАПРОС</div></div>';
+  // Уведомить друзей что начали смотреть
+  notifyFriendsWatching(title);
   enterRoom({ id: nr.key, ...roomData });
 }
 
-// Home search bar
+async function notifyFriendsWatching(title) {
+  if (!friends.length) return;
+  for (const f of friends) {
+    await sendNotification(f.uid, {
+      type: 'watching',
+      text: `${myName} начал смотреть «${title}»`,
+      fromUid: user.uid,
+      fromName: myName
+    });
+  }
+}
+
 on('home-search-input', 'click', () => openModal('modal-yt-search'));
 on('home-search-input', 'keydown', e => { if (e.key === 'Enter') { openModal('modal-yt-search'); setTimeout(() => { $('yt-search-input').value = $('home-search-input').value; ytSearch($('home-search-input').value); }, 100); } });
 
+// ===== QUEUE =====
+async function addToQueue(videoId, title) {
+  if (!currentRoom) return;
+  await push(ref(db, `rooms/${currentRoom.id}/queue`), { videoId, title, addedBy: myName, ts: Date.now() });
+}
+
+async function skipVideo() {
+  if (!currentRoom) return;
+  const snap = await get(ref(db, `rooms/${currentRoom.id}/queue`));
+  const data = snap.val();
+  if (!data) return;
+  const entries = Object.entries(data).sort(([,a],[,b]) => (a.ts||0)-(b.ts||0));
+  const [nextKey, next] = entries[0];
+  await remove(ref(db, `rooms/${currentRoom.id}/queue/${nextKey}`));
+  await applyChange(next.videoId, next.title, 'youtube');
+}
+
+function subscribeQueue() {
+  if (queueUnsub) { queueUnsub(); queueUnsub = null; }
+  if (!currentRoom) return;
+  queueUnsub = onValue(ref(db, `rooms/${currentRoom.id}/queue`), snap => renderQueue(snap.val()));
+}
+
+function renderQueue(data) {
+  const el = $('queue-list');
+  if (!el) return;
+  const btn = $('btn-skip');
+  if (!data) {
+    el.innerHTML = '<div style="color:var(--fg3);font-size:10px;font-family:var(--mono);letter-spacing:1px;padding:8px 0">ОЧЕРЕДЬ ПУСТА</div>';
+    if (btn) btn.style.opacity = '0.4';
+    return;
+  }
+  const entries = Object.entries(data).map(([id,v])=>({id,...v})).sort((a,b)=>(a.ts||0)-(b.ts||0));
+  if (btn) btn.style.opacity = entries.length ? '1' : '0.4';
+  el.innerHTML = entries.map((v,i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border)">
+      <span style="color:var(--fg3);font-family:var(--mono);font-size:9px;width:14px">${i+1}</span>
+      <img src="https://img.youtube.com/vi/${v.videoId}/default.jpg" style="width:40px;height:28px;object-fit:cover;border-radius:3px;flex-shrink:0" />
+      <span style="flex:1;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg)">${esc(v.title||'')}</span>
+    </div>`).join('');
+}
+
+on('btn-skip', 'click', skipVideo);
+on('btn-add-to-queue', 'click', () => {
+  document.querySelectorAll('#change-source-tabs .source-tab').forEach(b => b.classList.remove('active'));
+  document.querySelector('#change-source-tabs .source-tab').classList.add('active');
+  changeSource = 'youtube';
+  $('change-yt-section').style.display = '';
+  $('change-link-section').style.display = 'none';
+  $('change-browser-section').style.display = 'none';
+  openModal('modal-change-video');
+});
+
 // ===== ENTER ROOM =====
 function enterRoom(room) {
-  // cleanup
-  [messagesUnsub, participantsUnsub, syncUnsub, roomDataUnsub, browserSyncUnsub].forEach(u => u?.());
-  messagesUnsub = participantsUnsub = syncUnsub = roomDataUnsub = browserSyncUnsub = null;
+  [messagesUnsub, participantsUnsub, syncUnsub, roomDataUnsub, browserSyncUnsub, typingUnsub, queueUnsub].forEach(u => u?.());
+  messagesUnsub = participantsUnsub = syncUnsub = roomDataUnsub = browserSyncUnsub = typingUnsub = queueUnsub = null;
   clearInterval(posTimer);
   if (ssStream) { ssStream.getTracks().forEach(t => t.stop()); ssStream = null; }
 
   currentRoom = room;
-  isPlaying = false; isBrowserHost = false; lastPos = 0;
-  viewerSrc = ''; // reset so viewer loads fresh
+  isPlaying = false; isBrowserHost = false; lastPos = 0; lastSyncTs = 0;
+  viewerSrc = '';
 
-  // delete button — only for host
   $('btn-delete-room').style.display = room.host === myName ? '' : 'none';
 
-  // Room data changes (video changes only — not messages/participants)
   roomDataUnsub = onValue(ref(db, `rooms/${room.id}`), snap => {
     const data = snap.val();
     if (!data) { leaveRoom(); return; }
@@ -366,70 +540,138 @@ function enterRoom(room) {
     const oldUrl = currentRoom.url;
     const oldSource = currentRoom.source;
     currentRoom = { ...data, id: room.id };
-    // Only update viewer if video actually changed
     if (currentRoom.videoId !== oldVideoId || currentRoom.url !== oldUrl || currentRoom.source !== oldSource) {
-      viewerSrc = '';
+      viewerSrc = ''; isPlaying = false; lastPos = 0;
       updateViewer();
     }
+    txt('room-video-title', currentRoom.title || '');
   });
 
-  // Messages
+  // Messages — инкрементально
   $('chat-messages').innerHTML = '';
+  let knownMsgIds = new Set();
   messagesUnsub = onValue(ref(db, `rooms/${room.id}/messages`), snap => {
     const data = snap.val();
-    if (!data) { $('chat-messages').innerHTML = ''; return; }
+    if (!data) { $('chat-messages').innerHTML = ''; knownMsgIds.clear(); return; }
     const msgs = Object.entries(data).map(([id,v]) => ({id,...v})).sort((a,b)=>(a.time||0)-(b.time||0));
-    const wasAtBottom = $('chat-messages').scrollHeight - $('chat-messages').scrollTop <= $('chat-messages').clientHeight + 60;
-    $('chat-messages').innerHTML = msgs.map(m => {
-      const av = m.userAvatar ? `<div class="chat-av" style="background-image:url(${m.userAvatar});background-size:cover;background-position:center"></div>`
-        : `<div class="chat-av">${(m.user||'?')[0].toUpperCase()}</div>`;
-      const body = m.type === 'image' && m.imageUrl
-        ? `<img class="chat-msg-img" src="${m.imageUrl}" />`
-        : `<div class="chat-msg-text">${esc(m.text||'')}</div>`;
-      return `<div class="chat-msg">${av}<div><div class="chat-msg-user">${esc(m.user||'').toUpperCase()}</div>${body}</div></div>`;
-    }).join('');
-    if (wasAtBottom) $('chat-messages').scrollTop = $('chat-messages').scrollHeight;
+    const container = $('chat-messages');
+    const wasAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 80;
+    msgs.forEach(m => {
+      if (knownMsgIds.has(m.id)) return;
+      knownMsgIds.add(m.id);
+      const el = document.createElement('div');
+      el.className = 'chat-msg';
+      el.dataset.msgId = m.id;
+      const av = m.userAvatar
+        ? `<div class="chat-av chat-av-clickable" data-user="${escA(m.user||'')}" data-uid="${escA(m.userUid||'')}" style="background-image:url(${m.userAvatar});background-size:cover;background-position:center;cursor:pointer"></div>`
+        : `<div class="chat-av chat-av-clickable" data-user="${escA(m.user||'')}" data-uid="${escA(m.userUid||'')}" style="cursor:pointer">${(m.user||'?')[0].toUpperCase()}</div>`;
+      const body = buildMsgBody(m);
+      el.innerHTML = `${av}<div><div class="chat-msg-user chat-av-clickable" data-user="${escA(m.user||'')}" data-uid="${escA(m.userUid||'')}" style="cursor:pointer">${esc(m.user||'').toUpperCase()}</div>${body}</div>`;
+      attachMsgHandlers(el, m);
+      // Клик по аватару/имени — открыть профиль
+      el.querySelectorAll('.chat-av-clickable').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          openUserProfileByName(btn.dataset.user, btn.dataset.uid);
+        });
+      });
+      container.appendChild(el);
+    });
+    if (wasAtBottom) container.scrollTop = container.scrollHeight;
+  });
+
+  // Typing indicator
+  typingUnsub = onValue(ref(db, `rooms/${room.id}/typing`), snap => {
+    const data = snap.val();
+    const typers = data ? Object.entries(data)
+      .filter(([uid, v]) => uid !== user.uid && v.active && (Date.now() - (v.ts||0)) < 4000)
+      .map(([,v]) => v.name) : [];
+    const el = $('typing-indicator');
+    if (el) { el.textContent = typers.length ? `${typers.join(', ')} печатает...` : ''; el.style.display = typers.length ? '' : 'none'; }
   });
 
   // Participants
   const pRef = ref(db, `rooms/${room.id}/participants/${user.uid}`);
-  set(pRef, { name: myName, joinedAt: Date.now() });
+  set(pRef, { name: myName, uid: user.uid, joinedAt: Date.now() });
   participantsUnsub = onValue(ref(db, `rooms/${room.id}/participants`), snap => {
     const data = snap.val();
     const list = data ? Object.entries(data).map(([uid,v]) => ({uid,...v})) : [];
     txt('participants-count', list.length);
     txt('modal-parts-count', list.length);
     $('modal-parts-list').innerHTML = list.map(p => `
-      <div class="friend-row">
+      <div class="friend-row" style="cursor:pointer" data-puid="${p.uid}" data-pname="${escA(p.name||'')}">
         <div class="avatar">${(p.name||'?')[0].toUpperCase()}</div>
-        <div><div class="friend-name">${esc(p.name||'')}</div>${p.name===currentRoom.host?'<div class="friend-sub">ХОСТ</div>':''}</div>
+        <div><div class="friend-name">${esc(p.name||'')}</div>${p.uid===currentRoom.hostUid||p.name===currentRoom.host?'<div class="friend-sub">ХОСТ</div>':''}</div>
       </div>`).join('');
+    $('modal-parts-list').querySelectorAll('[data-puid]').forEach(row => {
+      row.addEventListener('click', () => openUserProfileByName(row.dataset.pname, row.dataset.puid));
+    });
   });
 
-  // Sync — play/pause + position
+  // SYNC
   syncUnsub = onValue(ref(db, `rooms/${room.id}/sync`), snap => {
     const data = snap.val();
-    if (!data || isSyncing) return;
+    if (!data) return;
+    if (data.updatedBy === user.uid && Date.now() - (data.ts||0) < 1500) return;
     applySync(data);
   });
 
-  // Position broadcast every 5s
   posTimer = setInterval(async () => {
     if (!currentRoom || !isPlaying) return;
-    const wv = $('main-webview');
-    if (wv && wv.style.display !== 'none') {
-      try {
-        const t = await wv.executeJavaScript('document.querySelector("video")?.currentTime || 0');
-        if (typeof t === 'number') lastPos = t;
-      } catch {}
+    const pos = await getVideoPosition();
+    if (pos !== null) {
+      lastPos = pos;
+      if (currentRoom.host === myName) {
+        await set(ref(db, `rooms/${currentRoom.id}/sync`), { playing: true, position: pos, ts: Date.now(), updatedBy: user.uid });
+        lastSyncTs = Date.now();
+      }
     }
-    if (!isSyncing) syncFirebase(true, lastPos);
-  }, 5000);
+  }, 4000);
 
+  subscribeQueue();
   updateViewer();
   screen('room');
 }
 
+// ===== OPEN USER PROFILE (from chat or participants) =====
+async function openUserProfileByName(name, uid) {
+  // Это я?
+  if (uid === user.uid || name === myName) {
+    closeModal();
+    tab('profile');
+    return;
+  }
+  // Ищем в друзьях
+  let profileData = friends.find(f => f.uid === uid || f.name === name);
+  // Если не нашли — идём в Firebase
+  if (!profileData && uid) {
+    const snap = await get(ref(db, `users/${uid}`));
+    if (snap.val()) profileData = { uid, ...snap.val() };
+  }
+  if (!profileData && name) {
+    const snap = await get(ref(db, 'users'));
+    const all = snap.val();
+    if (all) {
+      const found = Object.entries(all).find(([, v]) => v.name === name);
+      if (found) profileData = { uid: found[0], ...found[1] };
+    }
+  }
+  if (profileData) openFriendProfile(profileData);
+}
+
+// ===== GET VIDEO POSITION =====
+async function getVideoPosition() {
+  const wv = $('main-webview');
+  if (wv && wv.style.display !== 'none') {
+    try {
+      const t = await wv.executeJavaScript('(document.querySelector("video") || {}).currentTime || 0');
+      if (typeof t === 'number' && t > 0) return t;
+    } catch {}
+  }
+  return null;
+}
+
+// ===== UPDATE VIEWER =====
 function updateViewer() {
   if (!currentRoom) return;
   const wv = $('main-webview');
@@ -439,81 +681,89 @@ function updateViewer() {
   const pc = $('player-controls');
   const ssv = $('ss-video');
 
-  wv.style.display = 'none';
-  bwv.style.display = 'none';
-  ph.style.display = 'none';
+  wv.style.display = 'none'; bwv.style.display = 'none'; ph.style.display = 'none';
   if (bb) bb.style.display = 'none';
   pc.style.display = 'none';
   if (ssv) ssv.style.display = 'none';
 
   if (currentRoom.source === 'youtube' && currentRoom.videoId) {
-    const src = `https://www.youtube.com/watch?v=${currentRoom.videoId}&autoplay=1`;
-    if (viewerSrc !== src) { wv.setAttribute('src', src); viewerSrc = src; }
-    wv.style.display = '';
-    pc.style.display = '';
-    txt('room-video-title', currentRoom.title || '');
+    const src = `https://www.youtube.com/embed/${currentRoom.videoId}?enablejsapi=1&controls=1&rel=0&modestbranding=1`;
+    if (viewerSrc !== src) {
+      wv.setAttribute('src', src); viewerSrc = src;
+      wv.addEventListener('dom-ready', onWebviewReady, { once: true });
+    }
+    wv.style.display = ''; pc.style.display = '';
   } else if (currentRoom.source === 'browser') {
     bwv.style.display = '';
-    if (bb) { bb.style.display = 'flex'; }
+    if (bb) bb.style.display = 'flex';
     setupBrowserSync();
   } else if (currentRoom.url) {
     const src = currentRoom.url;
     if (viewerSrc !== src) { wv.setAttribute('src', src); viewerSrc = src; }
-    wv.style.display = '';
-    pc.style.display = '';
-    txt('room-video-title', currentRoom.title || '');
+    wv.style.display = ''; pc.style.display = '';
   } else {
     ph.style.display = '';
   }
+  updatePlayBtn();
+}
+
+async function onWebviewReady() {
+  if (!currentRoom) return;
+  const snap = await get(ref(db, `rooms/${currentRoom.id}/sync`));
+  const data = snap.val();
+  if (data) setTimeout(() => applySync(data), 1500);
 }
 
 // ===== SYNC =====
-async function syncFirebase(playing, pos = 0) {
-  if (!currentRoom) return;
-  isSyncing = true; clearTimeout(syncTimer);
-  syncTimer = setTimeout(() => { isSyncing = false; }, 1500);
+async function syncFirebase(playing, pos) {
+  if (!currentRoom || !user) return;
+  const position = pos !== undefined ? pos : lastPos;
   isPlaying = playing;
   updatePlayBtn();
-  await set(ref(db, `rooms/${currentRoom.id}/sync`), { playing, position: pos, ts: Date.now() });
+  const syncData = { playing, position, ts: Date.now(), updatedBy: user.uid };
+  lastSyncTs = syncData.ts;
+  await set(ref(db, `rooms/${currentRoom.id}/sync`), syncData);
 }
 
 function applySync(data) {
   isPlaying = data.playing;
   updatePlayBtn();
   const wv = $('main-webview');
-  if (wv && wv.style.display !== 'none') {
-    try {
-      if (data.playing) wv.executeJavaScript('document.querySelector("video")?.play()').catch(()=>{});
-      else wv.executeJavaScript('document.querySelector("video")?.pause()').catch(()=>{});
-      if (data.position !== undefined && Math.abs(lastPos - data.position) > 8) {
-        wv.executeJavaScript(`document.querySelector("video") && (document.querySelector("video").currentTime = ${data.position})`).catch(()=>{});
-        lastPos = data.position;
-      }
-    } catch {}
+  if (!wv || wv.style.display === 'none') return;
+  let targetPos = data.position || 0;
+  if (data.playing && data.ts) {
+    const elapsed = (Date.now() - data.ts) / 1000;
+    targetPos = targetPos + elapsed;
   }
+  try {
+    if (data.playing) {
+      wv.executeJavaScript(`(function(){var v=document.querySelector('video');if(!v)return;var t=${targetPos};if(Math.abs(v.currentTime-t)>3)v.currentTime=t;v.play().catch(function(){});})();`).catch(()=>{});
+    } else {
+      wv.executeJavaScript(`(function(){var v=document.querySelector('video');if(!v)return;v.pause();var t=${targetPos};if(Math.abs(v.currentTime-t)>3)v.currentTime=t;})();`).catch(()=>{});
+    }
+    lastPos = targetPos;
+  } catch {}
 }
 
 function updatePlayBtn() { txt('btn-play-pause', isPlaying ? '⏸ ПАУЗА' : '▶ ИГРАТЬ'); }
 
-on('btn-play-pause', 'click', () => {
-  const newPlaying = !isPlaying;
-  syncFirebase(newPlaying, lastPos);
+on('btn-play-pause', 'click', async () => {
+  const pos = await getVideoPosition() ?? lastPos;
+  lastPos = pos;
+  syncFirebase(!isPlaying, pos);
   const wv = $('main-webview');
   if (wv && wv.style.display !== 'none') {
     try {
-      if (newPlaying) wv.executeJavaScript('document.querySelector("video")?.play()').catch(()=>{});
+      if (isPlaying) wv.executeJavaScript('document.querySelector("video")?.play()').catch(()=>{});
       else wv.executeJavaScript('document.querySelector("video")?.pause()').catch(()=>{});
     } catch {}
   }
 });
 
-// Get position periodically
-setInterval(() => {
-  const wv = $('main-webview');
-  if (wv && wv.style.display !== 'none' && isPlaying) {
-    wv.executeJavaScript('document.querySelector("video")?.currentTime || 0')
-      .then(t => { if (typeof t === 'number') lastPos = t; }).catch(()=>{});
-  }
+setInterval(async () => {
+  if (!isPlaying) return;
+  const pos = await getVideoPosition();
+  if (pos !== null) lastPos = pos;
 }, 2000);
 
 // ===== BROWSER =====
@@ -554,8 +804,7 @@ function navBrowser(input) {
     url = url.includes('.') && !url.includes(' ') ? `https://${url}` : `https://www.google.com/search?q=${encodeURIComponent(url)}&gl=us&hl=en`;
   }
   isBrowserHost = true;
-  $('browser-webview').setAttribute('src', url);
-  $('browser-address').value = url;
+  $('browser-webview').setAttribute('src', url); $('browser-address').value = url;
   syncBrowserUrl(url);
 }
 
@@ -565,18 +814,31 @@ on('btn-browser-back', 'click', () => { isBrowserHost = true; $('browser-webview
 on('btn-browser-forward', 'click', () => { isBrowserHost = true; $('browser-webview')?.goForward?.(); });
 on('btn-browser-refresh', 'click', () => $('browser-webview')?.reload?.());
 
+// ===== TYPING =====
+on('chat-input', 'input', async () => {
+  if (!currentRoom || !user) return;
+  await set(ref(db, `rooms/${currentRoom.id}/typing/${user.uid}`), { name: myName, active: true, ts: Date.now() });
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(async () => {
+    if (currentRoom && user) await set(ref(db, `rooms/${currentRoom.id}/typing/${user.uid}`), { name: myName, active: false, ts: Date.now() });
+  }, 3000);
+});
+
 // ===== LEAVE / DELETE ROOM =====
 on('btn-leave-room', 'click', leaveRoom);
 function leaveRoom() {
-  clearInterval(posTimer);
-  if (currentRoom && user) remove(ref(db, `rooms/${currentRoom.id}/participants/${user.uid}`));
-  [messagesUnsub, participantsUnsub, syncUnsub, roomDataUnsub, browserSyncUnsub].forEach(u => u?.());
-  messagesUnsub = participantsUnsub = syncUnsub = roomDataUnsub = browserSyncUnsub = null;
+  clearInterval(posTimer); clearTimeout(typingTimer);
+  if (currentRoom && user) {
+    remove(ref(db, `rooms/${currentRoom.id}/participants/${user.uid}`));
+    set(ref(db, `rooms/${currentRoom.id}/typing/${user.uid}`), { name: myName, active: false, ts: Date.now() });
+  }
+  [messagesUnsub, participantsUnsub, syncUnsub, roomDataUnsub, browserSyncUnsub, typingUnsub, queueUnsub].forEach(u => u?.());
+  messagesUnsub = participantsUnsub = syncUnsub = roomDataUnsub = browserSyncUnsub = typingUnsub = queueUnsub = null;
   if (ssStream) { ssStream.getTracks().forEach(t => t.stop()); ssStream = null; }
   const wv = $('main-webview');
   if (wv) { wv.setAttribute('src', 'about:blank'); wv.style.display = 'none'; viewerSrc = ''; }
   const bwv = $('browser-webview');
-  if (bwv) { bwv.style.display = 'none'; }
+  if (bwv) bwv.style.display = 'none';
   currentRoom = null; isPlaying = false;
   screen('main');
 }
@@ -592,7 +854,6 @@ on('btn-delete-room', 'click', async () => {
 
 // ===== CHANGE VIDEO =====
 on('btn-change-video', 'click', () => {
-  // reset tabs
   document.querySelectorAll('#change-source-tabs .source-tab').forEach(b => b.classList.remove('active'));
   document.querySelector('#change-source-tabs .source-tab').classList.add('active');
   changeSource = 'youtube';
@@ -605,8 +866,7 @@ on('btn-change-video', 'click', () => {
 document.querySelectorAll('#change-source-tabs .source-tab').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('#change-source-tabs .source-tab').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    changeSource = btn.dataset.source;
+    btn.classList.add('active'); changeSource = btn.dataset.source;
     $('change-yt-section').style.display = changeSource === 'youtube' ? '' : 'none';
     $('change-link-section').style.display = (changeSource === 'twitch' || changeSource === 'file') ? '' : 'none';
     $('change-browser-section').style.display = changeSource === 'browser' ? '' : 'none';
@@ -623,67 +883,85 @@ on('btn-apply-browser', 'click', () => applyChange(undefined, undefined, 'browse
 async function applyChange(videoId, title, source, url) {
   if (!currentRoom) return;
   const src = source || changeSource;
-  const updates = { ...currentRoom, source: src };
-  if (title) updates.title = title;
-  if (src === 'browser') { delete updates.videoId; delete updates.url; isBrowserHost = true; }
-  else if (videoId) { updates.videoId = videoId; delete updates.url; }
-  else if (url) { updates.url = url.startsWith('http') ? url : `https://${url}`; delete updates.videoId; }
-  await set(ref(db, `rooms/${currentRoom.id}`), updates);
-  await set(ref(db, `rooms/${currentRoom.id}/sync`), { playing: false, position: 0, ts: Date.now() });
-  isPlaying = false;
+  const fieldUpdates = { source: src, title: title || currentRoom.title };
+  if (src === 'browser') { fieldUpdates.videoId = null; fieldUpdates.url = null; isBrowserHost = true; }
+  else if (videoId) { fieldUpdates.videoId = videoId; fieldUpdates.url = null; }
+  else if (url) { fieldUpdates.url = url.startsWith('http') ? url : `https://${url}`; fieldUpdates.videoId = null; }
+
+  const { update } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+  await update(ref(db, `rooms/${currentRoom.id}`), fieldUpdates);
+  await set(ref(db, `rooms/${currentRoom.id}/sync`), { playing: false, position: 0, ts: Date.now(), updatedBy: user.uid });
+  lastSyncTs = Date.now(); isPlaying = false;
   closeModal();
-  $('change-yt-input').value = ''; $('change-yt-results').innerHTML = '';
-  $('change-link-input').value = '';
+  $('change-yt-input').value = ''; $('change-yt-results').innerHTML = ''; $('change-link-input').value = '';
 }
 
 // ===== SCREENSHARE =====
 on('btn-screenshare', 'click', async () => {
   const sources = await window.electronAPI?.getSources();
   if (!sources) return;
-  $('ss-sources').innerHTML = sources.map(s => `
-    <div class="ss-item" data-id="${escA(s.id)}">
-      <img class="ss-thumb" src="${s.thumbnail}" />
-      <div class="ss-name">${esc(s.name)}</div>
-    </div>`).join('');
-  $('ss-sources').querySelectorAll('.ss-item').forEach(el => {
-    el.addEventListener('click', () => startScreenshare(el.dataset.id));
-  });
+  $('ss-sources').innerHTML = sources.map(s => `<div class="ss-item" data-id="${escA(s.id)}"><img class="ss-thumb" src="${s.thumbnail}" /><div class="ss-name">${esc(s.name)}</div></div>`).join('');
+  $('ss-sources').querySelectorAll('.ss-item').forEach(el => el.addEventListener('click', () => startScreenshare(el.dataset.id)));
   openModal('modal-screenshare');
 });
 
 async function startScreenshare(sourceId) {
   try {
     if (ssStream) ssStream.getTracks().forEach(t => t.stop());
-    ssStream = await navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId } }
-    });
-    $('main-webview').style.display = 'none';
-    $('browser-webview').style.display = 'none';
-    $('viewer-placeholder').style.display = 'none';
+    ssStream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId } } });
+    $('main-webview').style.display = 'none'; $('browser-webview').style.display = 'none'; $('viewer-placeholder').style.display = 'none';
     let ssv = $('ss-video');
-    if (!ssv) {
-      ssv = document.createElement('video');
-      ssv.id = 'ss-video';
-      ssv.style.cssText = 'width:100%;height:100%;object-fit:contain;background:#000;';
-      ssv.autoplay = true;
-      $('viewer-area').appendChild(ssv);
-    }
-    ssv.srcObject = ssStream;
-    ssv.style.display = '';
+    if (!ssv) { ssv = document.createElement('video'); ssv.id = 'ss-video'; ssv.style.cssText = 'width:100%;height:100%;object-fit:contain;background:#000;'; ssv.autoplay = true; $('viewer-area').appendChild(ssv); }
+    ssv.srcObject = ssStream; ssv.style.display = '';
     ssStream.getVideoTracks()[0].onended = () => { if (ssStream) { ssStream.getTracks().forEach(t=>t.stop()); ssStream=null; } updateViewer(); };
     closeModal();
-  } catch { alert('Не удалось запустить screen share. Проверь разрешения в системных настройках.'); }
+  } catch { alert('Не удалось запустить screen share. Проверь разрешения.'); }
 }
 
 // ===== PARTICIPANTS & INVITE =====
 on('btn-participants', 'click', () => openModal('modal-participants'));
-on('btn-invite', 'click', () => openModal('modal-invite'));
+on('btn-invite', 'click', () => {
+  renderInviteFriends();
+  openModal('modal-invite');
+});
 on('btn-copy-invite', 'click', () => {
   navigator.clipboard.writeText('https://outro-web-znla.vercel.app');
   txt('btn-copy-invite', 'СКОПИРОВАНО ✓');
   setTimeout(() => txt('btn-copy-invite', 'КОПИРОВАТЬ'), 2000);
 });
+
+function renderInviteFriends() {
+  const el = $('invite-friends-list');
+  if (!el || !currentRoom) return;
+  if (!friends.length) {
+    el.innerHTML = '<div style="color:var(--fg3);font-size:10px;font-family:var(--mono);letter-spacing:1px;padding:8px 0">НЕТ ДРУЗЕЙ</div>';
+    return;
+  }
+  el.innerHTML = friends.map(f => `
+    <div class="friend-row">
+      <div class="avatar">${(f.name||'?')[0].toUpperCase()}</div>
+      <div style="flex:1"><div class="friend-name">${esc(f.name||'')}</div></div>
+      <button class="btn-sm" data-invite-uid="${f.uid}" data-invite-name="${escA(f.name||'')}">ПРИГЛАСИТЬ</button>
+    </div>`).join('');
+  el.querySelectorAll('[data-invite-uid]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await sendRoomInvite(btn.dataset.inviteUid, btn.dataset.inviteName);
+      btn.textContent = 'ОТПРАВЛЕНО ✓'; btn.disabled = true;
+    });
+  });
+}
+
+async function sendRoomInvite(toUid, toName) {
+  if (!currentRoom || !user) return;
+  await sendNotification(toUid, {
+    type: 'room_invite',
+    text: `${myName} приглашает тебя смотреть «${currentRoom.title||'видео'}»`,
+    fromUid: user.uid,
+    fromName: myName,
+    roomId: currentRoom.id,
+    roomTitle: currentRoom.title || ''
+  });
+}
 
 // ===== CHAT =====
 on('btn-send', 'click', sendMsg);
@@ -692,30 +970,135 @@ on('chat-input', 'keydown', e => { if (e.key === 'Enter') sendMsg(); });
 async function sendMsg() {
   const msg = $('chat-input').value.trim();
   if (!msg || !currentRoom || !user) return;
+  $('chat-input').value = '';
+  clearTimeout(typingTimer);
+  if (user) set(ref(db, `rooms/${currentRoom.id}/typing/${user.uid}`), { name: myName, active: false, ts: Date.now() });
   await push(ref(db, `rooms/${currentRoom.id}/messages`), {
-    user: myName, userAvatar: myAvatar || null,
+    user: myName, userUid: user.uid, userAvatar: myAvatar || null,
     text: msg, type: 'text', time: serverTimestamp()
   });
-  $('chat-input').value = '';
 }
 
 on('btn-send-image', 'click', () => {
   const inp = document.createElement('input');
-  inp.type = 'file'; inp.accept = 'image/*';
+  inp.type = 'file';
+  inp.accept = 'image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar';
   inp.onchange = async e => {
     const file = e.target.files[0];
     if (!file || !currentRoom) return;
     const reader = new FileReader();
     reader.onload = async ev => {
+      const dataUrl = ev.target.result;
+      const isImg = file.type.startsWith('image/');
+      const isVid = file.type.startsWith('video/');
+      const isAud = file.type.startsWith('audio/');
       await push(ref(db, `rooms/${currentRoom.id}/messages`), {
-        user: myName, userAvatar: myAvatar || null,
-        imageUrl: ev.target.result, type: 'image', time: serverTimestamp()
+        user: myName, userUid: user.uid, userAvatar: myAvatar || null,
+        fileUrl: dataUrl, fileName: file.name, fileType: file.type, fileSize: file.size,
+        type: isImg ? 'image' : isVid ? 'video' : isAud ? 'audio' : 'file',
+        time: serverTimestamp()
       });
     };
     reader.readAsDataURL(file);
   };
   inp.click();
 });
+
+// ===== MSG BODY BUILDER =====
+function buildMsgBody(m) {
+  const type = m.type;
+  const url = m.fileUrl || m.imageUrl || '';
+  const name = m.fileName || 'файл';
+  const size = m.fileSize ? formatSize(m.fileSize) : '';
+
+  if (type === 'image' && url) {
+    return `<div class="msg-img-wrap">
+      <img class="chat-msg-img msg-clickable" src="${url}" data-url="${escA(url)}" data-name="${escA(name)}" />
+      <div class="msg-file-actions">
+        <span class="msg-action-btn" data-open-url="${escA(url)}" data-open-name="${escA(name)}">⊙ открыть</span>
+        <span class="msg-action-btn" data-save-url="${escA(url)}" data-save-name="${escA(name)}">⤓ сохранить</span>
+      </div></div>`;
+  }
+  if (type === 'video' && url) {
+    return `<div class="msg-video-wrap">
+      <video class="chat-msg-video msg-clickable" src="${url}" data-url="${escA(url)}" data-name="${escA(name)}" preload="metadata"></video>
+      <div class="msg-file-info"><span class="msg-file-name">${esc(name)}</span><span class="msg-file-size">${size}</span></div>
+      <div class="msg-file-actions">
+        <span class="msg-action-btn" data-open-url="${escA(url)}" data-open-name="${escA(name)}">⊙ открыть</span>
+        <span class="msg-action-btn" data-save-url="${escA(url)}" data-save-name="${escA(name)}">⤓ сохранить</span>
+      </div></div>`;
+  }
+  if (type === 'audio' && url) {
+    return `<div class="msg-audio-wrap">
+      <audio class="chat-msg-audio" src="${url}" controls preload="metadata"></audio>
+      <div class="msg-file-actions"><span class="msg-action-btn" data-save-url="${escA(url)}" data-save-name="${escA(name)}">⤓ сохранить</span></div>
+    </div>`;
+  }
+  if (type === 'file' && url) {
+    return `<div class="msg-file-wrap msg-clickable" data-open-url="${escA(url)}" data-open-name="${escA(name)}">
+      <span class="msg-file-icon">${getFileIcon(name)}</span>
+      <div class="msg-file-info"><span class="msg-file-name">${esc(name)}</span><span class="msg-file-size">${size}</span></div>
+      <div class="msg-file-actions">
+        <span class="msg-action-btn" data-open-url="${escA(url)}" data-open-name="${escA(name)}">⊙ открыть</span>
+        <span class="msg-action-btn" data-save-url="${escA(url)}" data-save-name="${escA(name)}">⤓ сохранить</span>
+      </div></div>`;
+  }
+  return `<div class="chat-msg-text">${esc(m.text||'')}</div>`;
+}
+
+function attachMsgHandlers(el, m) {
+  el.querySelectorAll('[data-open-url]').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); openFileOrLightbox(btn.dataset.openUrl, btn.dataset.openName, m.type); });
+  });
+  el.querySelectorAll('[data-save-url]').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); saveFile(btn.dataset.saveUrl, btn.dataset.saveName); });
+  });
+  el.querySelectorAll('.msg-clickable').forEach(item => {
+    item.addEventListener('click', () => {
+      if (m.type === 'image') openLightbox(item.dataset.url, item.dataset.name);
+      else if (m.type === 'video') openFileOrLightbox(item.dataset.url, item.dataset.name, 'video');
+      else if (m.type === 'file') openFileOrLightbox(item.dataset.openUrl, item.dataset.openName, 'file');
+    });
+  });
+}
+
+function openFileOrLightbox(url, name, type) {
+  if (type === 'image') { openLightbox(url, name); return; }
+  if (window.electronAPI?.openFile) window.electronAPI.openFile({ dataUrl: url, filename: name });
+}
+
+function saveFile(url, name) {
+  if (window.electronAPI?.saveFile) window.electronAPI.saveFile({ dataUrl: url, filename: name });
+  else { const a = document.createElement('a'); a.href = url; a.download = name || 'file'; a.click(); }
+}
+
+function openLightbox(url, name) {
+  let lb = $('msg-lightbox');
+  if (!lb) {
+    lb = document.createElement('div');
+    lb.id = 'msg-lightbox';
+    lb.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:zoom-out;';
+    lb.innerHTML = `
+      <div style="position:absolute;top:16px;right:16px;display:flex;gap:8px;z-index:1">
+        <button id="lb-open" style="background:rgba(255,255,255,0.1);border:0.5px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:6px 12px;font-family:var(--mono);font-size:10px;letter-spacing:1px;cursor:pointer">⊙ ОТКРЫТЬ</button>
+        <button id="lb-save" style="background:rgba(255,255,255,0.1);border:0.5px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:6px 12px;font-family:var(--mono);font-size:10px;letter-spacing:1px;cursor:pointer">⤓ СОХРАНИТЬ</button>
+        <button id="lb-close" style="background:rgba(255,255,255,0.1);border:0.5px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:6px 12px;font-family:var(--mono);font-size:10px;letter-spacing:1px;cursor:pointer">✕</button>
+      </div>
+      <img id="lb-img" style="max-width:90vw;max-height:88vh;object-fit:contain;border-radius:4px;box-shadow:0 8px 40px rgba(0,0,0,0.6)" />
+      <div id="lb-name" style="color:rgba(255,255,255,0.4);font-size:10px;font-family:var(--mono);margin-top:10px;letter-spacing:1px"></div>`;
+    document.body.appendChild(lb);
+    lb.addEventListener('click', e => { if (e.target === lb) closeLightbox(); });
+  }
+  $('lb-img').src = url; $('lb-name').textContent = name || '';
+  lb.style.display = 'flex';
+  $('lb-close').onclick = closeLightbox;
+  $('lb-open').onclick = () => { if (window.electronAPI?.openFile) window.electronAPI.openFile({ dataUrl: url, filename: name }); };
+  $('lb-save').onclick = () => saveFile(url, name);
+}
+
+function closeLightbox() { const lb = $('msg-lightbox'); if (lb) lb.style.display = 'none'; }
+function formatSize(b) { if(!b)return''; if(b<1024)return`${b} B`; if(b<1048576)return`${(b/1024).toFixed(1)} KB`; return`${(b/1048576).toFixed(1)} MB`; }
+function getFileIcon(name) { const e=(name||'').split('.').pop().toLowerCase(); return {pdf:'▤',doc:'▤',docx:'▤',txt:'▤',zip:'▦',rar:'▦','7z':'▦',mp3:'♫',wav:'♫',flac:'♫'}[e]||'▢'; }
 
 // ===== FRIENDS =====
 function loadFriends() {
@@ -725,6 +1108,8 @@ function loadFriends() {
     friends = data ? Object.entries(data).map(([uid,v]) => ({uid,...v})) : [];
     txt('friends-count', friends.length);
     txt('stat-friends', friends.length);
+    // Обновляем friendsCount в Firebase чтобы другие могли видеть
+    set(ref(db, `users/${user.uid}/friendsCount`), friends.length);
     renderFriends();
   });
 }
@@ -746,19 +1131,15 @@ function renderFriends() {
     const av = f.avatar
       ? `<div class="avatar" style="background-image:url(${f.avatar});background-size:cover;background-position:center"></div>`
       : `<div class="avatar">${(f.name||'?')[0].toUpperCase()}</div>`;
-    return `<div class="friend-row" data-uid="${f.uid}">${av}<div><div class="friend-name">${esc(f.name||'')}</div><div class="friend-sub">ОНЛАЙН</div></div><span style="color:var(--fg3)">→</span></div>`;
+    return `<div class="friend-row" data-uid="${f.uid}">${av}<div><div class="friend-name">${esc(f.name||'')}</div><div class="friend-sub">ДРУГ</div></div><span style="color:var(--fg3)">→</span></div>`;
   }).join('');
   el.querySelectorAll('.friend-row').forEach(row => {
-    row.addEventListener('click', () => {
-      const f = friends.find(f => f.uid === row.dataset.uid);
-      if (f) openFriendProfile(f);
-    });
+    row.addEventListener('click', () => { const f = friends.find(f => f.uid === row.dataset.uid); if (f) openFriendProfile(f); });
   });
 }
 
 function renderIncoming() {
-  const sec = $('incoming-section');
-  const list = $('incoming-list');
+  const sec = $('incoming-section'); const list = $('incoming-list');
   if (!incomingReqs.length) { sec.style.display = 'none'; return; }
   sec.style.display = '';
   txt('requests-count', incomingReqs.length);
@@ -776,9 +1157,14 @@ function renderIncoming() {
 }
 
 async function acceptReq(fromUid, fromName) {
-  await set(ref(db, `users/${user.uid}/friends/${fromUid}`), { uid: fromUid, name: fromName });
+  // Получаем аватар и данные второго пользователя
+  const snap = await get(ref(db, `users/${fromUid}`));
+  const fromData = snap.val() || {};
+  await set(ref(db, `users/${user.uid}/friends/${fromUid}`), { uid: fromUid, name: fromName, avatar: fromData.avatar || null });
   await set(ref(db, `users/${fromUid}/friends/${user.uid}`), { uid: user.uid, name: myName, avatar: myAvatar || null });
   await remove(ref(db, `users/${user.uid}/friendRequests/incoming/${fromUid}`));
+  // Уведомить что приняли
+  await sendNotification(fromUid, { type: 'system', text: `${myName} принял(а) твою заявку в друзья`, fromUid: user.uid, fromName: myName });
 }
 
 async function declineReq(fromUid) {
@@ -793,8 +1179,7 @@ async function searchUsers() {
   if (!q) return;
   const snap = await get(ref(db, 'users'));
   const data = snap.val();
-  const sec = $('search-results-section');
-  const list = $('search-results-list');
+  const sec = $('search-results-section'); const list = $('search-results-list');
   if (!data) { sec.style.display = 'none'; return; }
   const results = Object.entries(data)
     .filter(([uid, v]) => uid !== user.uid && v.name?.toLowerCase().includes(q))
@@ -808,7 +1193,10 @@ async function searchUsers() {
       : `<div class="avatar">${(u.name||'?')[0].toUpperCase()}</div>`;
     return `<div class="friend-row" data-uid="${u.uid}">
       ${av}
-      <div style="flex:1"><div class="friend-name">${esc(u.name||'')}</div></div>
+      <div style="flex:1">
+        <div class="friend-name">${esc(u.name||'')}</div>
+        <div class="friend-sub">${u.friendsCount||0} ДРУЗЕЙ</div>
+      </div>
       ${isFriend ? '<span style="color:var(--fg3);font-size:9px;font-family:var(--mono);letter-spacing:1px">ДРУГ</span>'
         : `<button class="btn-sm" data-add="${u.uid}" data-aname="${escA(u.name)}">+</button>`}
     </div>`;
@@ -817,16 +1205,20 @@ async function searchUsers() {
     btn.addEventListener('click', e => { e.stopPropagation(); sendFriendReq(btn.dataset.add, btn.dataset.aname); });
   });
   list.querySelectorAll('.friend-row').forEach(row => {
-    row.addEventListener('click', () => {
-      const u = results.find(r => r.uid === row.dataset.uid);
-      if (u) openFriendProfile(u);
-    });
+    row.addEventListener('click', () => { const u = results.find(r => r.uid === row.dataset.uid); if (u) openFriendProfile(u); });
   });
 }
 
 async function sendFriendReq(toUid, toName) {
   await set(ref(db, `users/${toUid}/friendRequests/incoming/${user.uid}`), {
     fromUid: user.uid, fromName: myName, status: 'pending', ts: Date.now()
+  });
+  // Уведомление
+  await sendNotification(toUid, {
+    type: 'friend_request',
+    text: `${myName} хочет добавить тебя в друзья`,
+    fromUid: user.uid,
+    fromName: myName
   });
   alert(`Запрос отправлен ${toName}`);
 }
@@ -836,33 +1228,40 @@ function openFriendProfile(friend) {
   const isFriend = friends.some(f => f.uid === friend.uid);
   txt('fp-avatar', (friend.name||'?')[0].toUpperCase());
   txt('fp-name', friend.name || '');
-  if (friend.avatar) {
-    $('fp-avatar-img').style.backgroundImage = `url(${friend.avatar})`;
-    $('fp-avatar-img').style.display = '';
-  } else {
-    $('fp-avatar-img').style.display = 'none';
-  }
+  txt('fp-friends-count', (friend.friendsCount || 0) + ' друзей');
+  if (friend.avatar) { $('fp-avatar-img').style.backgroundImage = `url(${friend.avatar})`; $('fp-avatar-img').style.display = ''; }
+  else $('fp-avatar-img').style.display = 'none';
   $('btn-add-friend').style.display = isFriend ? 'none' : '';
   $('fp-already').style.display = isFriend ? '' : 'none';
+  // Кнопка "пригласить в комнату" — только если мы сейчас в комнате и это друг
+  const invBtn = $('btn-fp-invite-room');
+  if (invBtn) invBtn.style.display = (currentRoom && isFriend) ? '' : 'none';
   openModal('modal-friend-profile');
+  // Загружаем актуальные данные из Firebase
+  if (friend.uid) {
+    get(ref(db, `users/${friend.uid}`)).then(snap => {
+      const d = snap.val();
+      if (d) txt('fp-friends-count', (d.friendsCount || 0) + ' друзей');
+    });
+  }
 }
 
-on('btn-add-friend', 'click', () => {
-  if (selectedFriend) sendFriendReq(selectedFriend.uid, selectedFriend.name);
-  closeModal();
+on('btn-add-friend', 'click', () => { if (selectedFriend) sendFriendReq(selectedFriend.uid, selectedFriend.name); closeModal(); });
+on('btn-fp-invite-room', 'click', async () => {
+  if (selectedFriend && currentRoom) {
+    await sendRoomInvite(selectedFriend.uid, selectedFriend.name);
+    txt('btn-fp-invite-room', 'ОТПРАВЛЕНО ✓');
+    setTimeout(() => txt('btn-fp-invite-room', 'ПРИГЛАСИТЬ В КОМНАТУ'), 2000);
+  }
 });
 
 // ===== ACCOUNT =====
-on('settings-account-item', 'click', () => {
-  $('account-name-input').value = myName;
-  openModal('modal-account');
-});
+on('settings-account-item', 'click', () => { $('account-name-input').value = myName; openModal('modal-account'); });
 on('btn-save-name', 'click', async () => {
   const name = $('account-name-input').value.trim();
   if (!name || !user) return;
   await set(ref(db, `users/${user.uid}/name`), name);
-  myName = name;
-  updateProfileUI();
+  myName = name; updateProfileUI();
   txt('btn-save-name', 'СОХРАНЕНО ✓');
   setTimeout(() => txt('btn-save-name', 'СОХРАНИТЬ НИК'), 2000);
 });
