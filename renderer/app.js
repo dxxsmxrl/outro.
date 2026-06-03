@@ -687,7 +687,7 @@ function updateViewer() {
   if (ssv) ssv.style.display = 'none';
 
   if (currentRoom.source === 'youtube' && currentRoom.videoId) {
-    const src = `https://www.youtube.com/embed/${currentRoom.videoId}?enablejsapi=1&controls=1&rel=0&modestbranding=1`;
+   const src = `https://www.youtube.com/watch?v=${currentRoom.videoId}`;
     if (viewerSrc !== src) {
       wv.setAttribute('src', src); viewerSrc = src;
       wv.addEventListener('dom-ready', onWebviewReady, { once: true });

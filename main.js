@@ -28,10 +28,10 @@ function setupAdBlock(ses) {
     callback({ cancel: true });
   });
 
-  // Дополнительно — убираем рекламные заголовки
-  ses.webRequest.onBeforeSendHeaders({ urls: ['*://*.youtube.com/*'] }, (details, callback) => {
+  ses.webRequest.onBeforeSendHeaders({ urls: ['*://*.youtube.com/*', '*://*.googlevideo.com/*'] }, (details, callback) => {
     const headers = details.requestHeaders;
     delete headers['X-YouTube-Client-Name'];
+    headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
     callback({ requestHeaders: headers });
   });
 }
