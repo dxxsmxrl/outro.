@@ -695,7 +695,22 @@ async function openUserProfileByName(name, uid) {
   if (profileData) openFriendProfile(profileData);
 }
 
-// ===== UPDATE VIEWER =====
+// ===== STOP WEBVIEW AUDIO =====
+function stopWebviewAudio(webview) {
+  if (!webview) return;
+  try {
+    webview.executeJavaScript(`
+      (function() {
+        document.querySelectorAll('video, audio').forEach(function(m) {
+          m.pause(); m.src = ''; m.load();
+        });
+      })();
+    `).catch(() => {});
+  } catch {}
+  webview.setAttribute('src', 'about:blank');
+}
+
+
 function updateViewer() {
   if (!currentRoom) return;
   const wv = $('main-webview');
@@ -713,7 +728,7 @@ function updateViewer() {
   if (currentRoom.source === 'youtube' && currentRoom.videoId) {
     // Убиваем браузер если был активен
     if (bwv.getAttribute('src') && bwv.getAttribute('src') !== 'about:blank') {
-      bwv.setAttribute('src', 'about:blank');
+      stopWebviewAudio(bwv);
     }
     const src = `https://www.youtube.com/watch?v=${currentRoom.videoId}`;
     if (viewerSrc !== src) {
@@ -724,7 +739,7 @@ function updateViewer() {
   } else if (currentRoom.source === 'browser') {
     // Убиваем main-webview если был активен
     if (viewerSrc && viewerSrc !== 'about:blank') {
-      wv.setAttribute('src', 'about:blank'); viewerSrc = '';
+      stopWebviewAudio(wv); viewerSrc = '';
     }
     bwv.style.display = '';
     if (bb) bb.style.display = 'flex';
@@ -732,7 +747,7 @@ function updateViewer() {
   } else if (currentRoom.url) {
     // Убиваем браузер если был активен
     if (bwv.getAttribute('src') && bwv.getAttribute('src') !== 'about:blank') {
-      bwv.setAttribute('src', 'about:blank');
+      stopWebviewAudio(bwv);
     }
     const src = currentRoom.url;
     if (viewerSrc !== src) { wv.setAttribute('src', src); viewerSrc = src; }
@@ -741,10 +756,10 @@ function updateViewer() {
   } else {
     // Нет источника — глушим всё
     if (viewerSrc && viewerSrc !== 'about:blank') {
-      wv.setAttribute('src', 'about:blank'); viewerSrc = '';
+      stopWebviewAudio(wv); viewerSrc = '';
     }
     if (bwv.getAttribute('src') && bwv.getAttribute('src') !== 'about:blank') {
-      bwv.setAttribute('src', 'about:blank');
+      stopWebviewAudio(bwv);
     }
     ph.style.display = '';
   }
@@ -945,9 +960,9 @@ function leaveRoom() {
   messagesUnsub = participantsUnsub = syncUnsub = roomDataUnsub = browserSyncUnsub = typingUnsub = queueUnsub = commandUnsub = null;
   if (ssStream) { ssStream.getTracks().forEach(t => t.stop()); ssStream = null; }
   const wv = $('main-webview');
-  if (wv) { wv.setAttribute('src', 'about:blank'); wv.style.display = 'none'; viewerSrc = ''; }
+  if (wv) { stopWebviewAudio(wv); wv.style.display = 'none'; viewerSrc = ''; }
   const bwv = $('browser-webview');
-  if (bwv) { bwv.setAttribute('src', 'about:blank'); bwv.style.display = 'none'; }
+  if (bwv) { stopWebviewAudio(bwv); bwv.style.display = 'none'; }
   currentRoom = null; isPlaying = false; isHost = false;
   screen('main');
 }

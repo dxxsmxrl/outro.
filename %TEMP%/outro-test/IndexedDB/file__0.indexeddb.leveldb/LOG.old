@@ -1,13 +1,13 @@
-2026/06/03-10:14:08.362 28b0 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/MANIFEST-000001
-2026/06/03-10:14:08.363 28b0 Recovering log #7
-2026/06/03-10:14:08.363 28b0 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/000007.log 
-2026/06/03-10:14:08.387 2b6c Level-0 table #12: started
-2026/06/03-10:14:08.408 2b6c Level-0 table #12: 3244 bytes OK
-2026/06/03-10:14:08.419 2b6c Delete type=0 #7
-2026/06/03-10:14:08.419 2144 Manual compaction at level-0 from '\x00\x05\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x06\x00\x00\x00' @ 0 : 0; will stop at (end)
-2026/06/03-10:14:48.419 28b0 Compacting 1@1 + 1@2 files
-2026/06/03-10:14:48.429 28b0 Generated table #13@1: 41 keys, 2884 bytes
-2026/06/03-10:14:48.430 28b0 Compacted 1@1 + 1@2 files => 2884 bytes
-2026/06/03-10:14:48.432 28b0 compacted to: files[ 0 0 1 0 0 0 0 ]
-2026/06/03-10:14:48.432 28b0 Delete type=2 #9
-2026/06/03-10:14:48.432 28b0 Delete type=2 #12
+2026/06/03-10:27:05.151 5dd8 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/MANIFEST-000001
+2026/06/03-10:27:05.151 5dd8 Recovering log #11
+2026/06/03-10:27:05.152 5dd8 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/000011.log 
+2026/06/03-10:27:05.157 5dd8 Level-0 table #16: started
+2026/06/03-10:27:05.170 5dd8 Level-0 table #16: 3244 bytes OK
+2026/06/03-10:27:05.173 5dd8 Delete type=0 #11
+2026/06/03-10:27:05.174 3918 Manual compaction at level-0 from '\x00\x06\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x07\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/06/03-10:27:45.178 3918 Compacting 1@1 + 1@2 files
+2026/06/03-10:27:45.188 3918 Generated table #17@1: 41 keys, 2886 bytes
+2026/06/03-10:27:45.188 3918 Compacted 1@1 + 1@2 files => 2886 bytes
+2026/06/03-10:27:45.190 3918 compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/06/03-10:27:45.190 3918 Delete type=2 #13
+2026/06/03-10:27:45.190 3918 Delete type=2 #16
