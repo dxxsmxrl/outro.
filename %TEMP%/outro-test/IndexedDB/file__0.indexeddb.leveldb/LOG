@@ -1,13 +1,13 @@
-2026/06/03-11:07:33.900 5c58 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/MANIFEST-000001
-2026/06/03-11:07:33.901 5c58 Recovering log #47
-2026/06/03-11:07:33.901 5c58 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/000047.log 
-2026/06/03-11:07:33.911 4aac Level-0 table #52: started
-2026/06/03-11:07:33.917 4aac Level-0 table #52: 5874 bytes OK
-2026/06/03-11:07:33.921 4aac Delete type=0 #47
-2026/06/03-11:07:33.922 4aac Manual compaction at level-0 from '\x00\x0f\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x10\x00\x00\x00' @ 0 : 0; will stop at (end)
-2026/06/03-11:08:12.337 fe4 Compacting 1@1 + 1@2 files
-2026/06/03-11:08:12.349 fe4 Generated table #53@1: 41 keys, 2891 bytes
-2026/06/03-11:08:12.349 fe4 Compacted 1@1 + 1@2 files => 2891 bytes
-2026/06/03-11:08:12.350 fe4 compacted to: files[ 0 0 1 0 0 0 0 ]
-2026/06/03-11:08:12.350 fe4 Delete type=2 #49
-2026/06/03-11:08:12.350 fe4 Delete type=2 #52
+2026/06/03-11:18:04.475 8a0 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/MANIFEST-000001
+2026/06/03-11:18:04.475 8a0 Recovering log #51
+2026/06/03-11:18:04.475 8a0 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/000051.log 
+2026/06/03-11:18:04.515 53f8 Level-0 table #56: started
+2026/06/03-11:18:04.524 53f8 Level-0 table #56: 3243 bytes OK
+2026/06/03-11:18:04.526 53f8 Delete type=0 #51
+2026/06/03-11:18:04.526 4db8 Manual compaction at level-0 from '\x00\x10\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x11\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/06/03-11:18:46.933 8a0 Compacting 1@1 + 1@2 files
+2026/06/03-11:18:46.950 8a0 Generated table #57@1: 41 keys, 2906 bytes
+2026/06/03-11:18:46.951 8a0 Compacted 1@1 + 1@2 files => 2906 bytes
+2026/06/03-11:18:46.958 8a0 compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/06/03-11:18:46.959 8a0 Delete type=2 #53
+2026/06/03-11:18:46.959 8a0 Delete type=2 #56

@@ -785,3 +785,9 @@ html, body {
 .monke .titlebar { background: var(--bg2); border-bottom-color: var(--border); }
 .monke .room-topbar { background: var(--bg2); }
 .monke .room-chat { background: var(--bg2); }
+/* ===== MAC DRAG FIX — prevent titlebar drag from blocking clicks ===== */
+* { -webkit-app-region: no-drag; }
+.titlebar { -webkit-app-region: drag; }
+.titlebar-controls,
+.titlebar-controls *,
+.tb-btn { -webkit-app-region: no-drag; }

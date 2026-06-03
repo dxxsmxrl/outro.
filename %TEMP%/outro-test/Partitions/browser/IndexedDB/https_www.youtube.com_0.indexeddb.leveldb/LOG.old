@@ -1,3 +1,9 @@
-2026/06/03-10:59:00.314 1818 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\IndexedDB\https_www.youtube.com_0.indexeddb.leveldb/MANIFEST-000001
-2026/06/03-10:59:00.315 1818 Recovering log #15
-2026/06/03-10:59:00.320 1818 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\IndexedDB\https_www.youtube.com_0.indexeddb.leveldb/000015.log 
+2026/06/03-11:18:38.944 4db8 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\IndexedDB\https_www.youtube.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/06/03-11:18:38.944 4db8 Recovering log #19
+2026/06/03-11:18:38.945 4db8 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\IndexedDB\https_www.youtube.com_0.indexeddb.leveldb/000019.log 
+2026/06/03-11:18:40.562 8a0 Compacting 1@1 + 1@2 files
+2026/06/03-11:18:40.570 8a0 Generated table #22@1: 345 keys, 81052 bytes
+2026/06/03-11:18:40.570 8a0 Compacted 1@1 + 1@2 files => 81052 bytes
+2026/06/03-11:18:40.571 8a0 compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/06/03-11:18:40.572 8a0 Delete type=2 #17
+2026/06/03-11:18:40.572 8a0 Delete type=2 #20

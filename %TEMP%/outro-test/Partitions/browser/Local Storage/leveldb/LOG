@@ -1,3 +1,14 @@
-2026/06/03-11:07:33.476 4aac Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\Local Storage\leveldb/MANIFEST-000001
-2026/06/03-11:07:33.477 4aac Recovering log #9
-2026/06/03-11:07:33.478 4aac Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\Local Storage\leveldb/000009.log 
+2026/06/03-11:18:04.195 2f74 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\Local Storage\leveldb/MANIFEST-000001
+2026/06/03-11:18:04.195 2f74 Recovering log #9
+2026/06/03-11:18:04.196 2f74 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\Local Storage\leveldb/000009.log 
+2026/06/03-12:18:26.232 8a0 Level-0 table #13: started
+2026/06/03-12:18:26.236 8a0 Level-0 table #13: 33418 bytes OK
+2026/06/03-12:18:26.238 8a0 Delete type=0 #9
+2026/06/03-12:18:26.239 8a0 Compacting 4@0 + 0@1 files
+2026/06/03-12:18:26.242 8a0 Generated table #14@0: 56 keys, 4229 bytes
+2026/06/03-12:18:26.242 8a0 Compacted 4@0 + 0@1 files => 4229 bytes
+2026/06/03-12:18:26.243 8a0 compacted to: files[ 0 1 0 0 0 0 0 ]
+2026/06/03-12:18:26.244 8a0 Delete type=2 #3
+2026/06/03-12:18:26.244 8a0 Delete type=2 #7
+2026/06/03-12:18:26.244 8a0 Delete type=2 #10
+2026/06/03-12:18:26.244 8a0 Delete type=2 #13
