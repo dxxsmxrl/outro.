@@ -5,65 +5,8 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: wss: data: blob:; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https: wss: ws:; img-src 'self' data: https: blob:;" />
   <title>Outro</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@200;300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-  <style>
-    /* ===== NOTIFICATIONS ===== */
-    .notif-row {
-      display: flex; align-items: flex-start; gap: 10px;
-      padding: 12px 20px; border-bottom: 0.5px solid var(--border);
-      transition: background 0.1s;
-    }
-    .notif-row:hover { background: var(--bg2); }
-    .notif-unread { background: var(--bg2); }
-    .notif-icon { font-size: 14px; color: var(--fg3); flex-shrink: 0; margin-top: 1px; width: 18px; text-align: center; }
-    .notif-text { color: var(--fg); font-size: 13px; line-height: 1.4; }
-    .notif-time { color: var(--fg3); font-size: 9px; font-family: var(--mono); letter-spacing: 1px; margin-top: 3px; }
-
-    /* Badge with count */
-    .nav-badge-count {
-      position: absolute; top: 4px; right: 4px;
-      min-width: 14px; height: 14px; border-radius: 7px;
-      background: var(--red); color: #fff;
-      font-size: 8px; font-family: var(--mono);
-      display: flex; align-items: center; justify-content: center;
-      padding: 0 3px;
-    }
-
-    /* ===== FILE MESSAGES ===== */
-    .msg-img-wrap, .msg-video-wrap, .msg-file-wrap, .msg-audio-wrap { margin-top: 4px; max-width: 200px; }
-    .chat-msg-img { max-width: 180px; border-radius: 6px; display: block; cursor: zoom-in; transition: opacity 0.12s; }
-    .chat-msg-img:hover { opacity: 0.88; }
-    .chat-msg-video { max-width: 180px; max-height: 120px; border-radius: 6px; display: block; cursor: pointer; background: #000; }
-    .chat-msg-audio { width: 180px; height: 32px; border-radius: 6px; }
-    .msg-file-wrap { display: flex; align-items: center; gap: 8px; background: var(--bg2); border: 0.5px solid var(--border); border-radius: 7px; padding: 8px 10px; cursor: pointer; transition: border-color 0.12s; }
-    .msg-file-wrap:hover { border-color: var(--border3); }
-    .msg-file-icon { font-size: 18px; color: var(--fg3); flex-shrink: 0; }
-    .msg-file-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .msg-file-name { color: var(--fg); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
-    .msg-file-size { color: var(--fg3); font-size: 9px; font-family: var(--mono); }
-    .msg-file-actions { display: flex; gap: 8px; margin-top: 4px; }
-    .msg-action-btn { color: var(--fg3); font-size: 9px; font-family: var(--mono); letter-spacing: 1px; cursor: pointer; transition: color 0.1s; user-select: none; }
-    .msg-action-btn:hover { color: var(--fg); }
-
-    /* ===== TYPING ===== */
-    #typing-indicator { display: none; padding: 0 12px 4px; color: var(--fg3); font-size: 10px; font-family: var(--mono); letter-spacing: 1px; font-style: italic; min-height: 16px; }
-
-    /* ===== QUEUE ===== */
-    .queue-panel { border-top: 0.5px solid var(--border); flex-shrink: 0; }
-    .queue-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; user-select: none; }
-    .queue-header-label { flex: 1; font-size: 9px; font-family: var(--mono); letter-spacing: 2px; color: var(--fg3); }
-    .queue-toggle-icon { color: var(--fg3); font-size: 10px; transition: transform 0.15s; }
-    .queue-toggle-icon.open { transform: rotate(180deg); }
-    .queue-body { max-height: 160px; overflow-y: auto; padding: 0 12px 8px; }
-    .queue-actions { display: flex; gap: 6px; padding: 0 12px 8px; }
-    .btn-queue-action { flex: 1; background: var(--bg2); border: 0.5px solid var(--border); border-radius: 5px; padding: 5px 8px; color: var(--fg3); font-size: 9px; font-family: var(--mono); letter-spacing: 1px; cursor: pointer; transition: border-color 0.12s, color 0.12s; }
-    .btn-queue-action:hover { border-color: var(--fg2); color: var(--fg); }
-    .btn-queue-action:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    /* ===== CHAT MSG HOVER (name clickable) ===== */
-    .chat-msg-user:hover { color: var(--fg2) !important; text-decoration: underline; }
-  </style>
 </head>
 <body>
 <div id="app">
@@ -72,12 +15,18 @@
   <div class="titlebar">
     <div class="titlebar-drag"></div>
     <div class="titlebar-center">
-      <div class="wordmark-wrap"><span class="wordmark-text">OUTRO</span><div class="wordmark-line"></div></div>
+      <span class="wordmark sm">OUTRO</span>
     </div>
     <div class="titlebar-controls">
-      <button class="tb-btn" id="btn-minimize">—</button>
-      <button class="tb-btn" id="btn-maximize">□</button>
-      <button class="tb-btn tb-close" id="btn-close">✕</button>
+      <button class="tb-btn" id="btn-minimize" title="Minimize">
+        <svg viewBox="0 0 12 12" fill="none"><path d="M2 6h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      </button>
+      <button class="tb-btn" id="btn-maximize" title="Maximize">
+        <svg viewBox="0 0 12 12" fill="none"><rect x="2" y="2" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/></svg>
+      </button>
+      <button class="tb-btn tb-close" id="btn-close" title="Close">
+        <svg viewBox="0 0 12 12" fill="none"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      </button>
     </div>
   </div>
 
@@ -86,20 +35,22 @@
     <div class="auth-bg"></div>
     <div class="auth-container">
       <div class="auth-logo">
-        <div class="wordmark-wrap xl"><span class="wordmark-text">OUTRO</span><div class="wordmark-line"></div></div>
-        <div class="auth-tagline">DIVINA COMMEDIA</div>
+        <div class="wordmark lg">OUTRO</div>
+        <div class="auth-tagline">Watch together</div>
       </div>
       <div class="auth-form">
-        <div class="auth-mode-label" id="auth-mode-label">ВХОД</div>
-        <div id="username-wrap" style="display:none"><input class="field" id="input-username" placeholder="Ник (будет виден всем)" autocomplete="off" /></div>
+        <div class="auth-mode-label" id="auth-mode-label">Sign in</div>
+        <div id="username-wrap" style="display:none">
+          <input class="field" id="input-username" placeholder="Username" autocomplete="off" />
+        </div>
         <input class="field" id="input-email" placeholder="Email" type="email" autocomplete="off" />
-        <input class="field" id="input-password" placeholder="Пароль" type="password" />
+        <input class="field" id="input-password" placeholder="Password" type="password" />
         <div class="auth-error" id="auth-error"></div>
-        <button class="btn-primary" id="btn-auth">ВОЙТИ →</button>
-        <div class="divider"><span>или</span></div>
-        <button class="btn-ghost" id="btn-toggle-mode">СОЗДАТЬ АККАУНТ</button>
+        <button class="btn-primary" id="btn-auth">Continue →</button>
+        <div class="divider"><span>or</span></div>
+        <button class="btn-ghost" id="btn-toggle-mode">Create account</button>
       </div>
-      <div class="auth-footer">PROD. BY MARL</div>
+      <div class="auth-footer">prod. by marl</div>
     </div>
   </div>
 
@@ -107,25 +58,36 @@
   <div id="screen-main" class="screen">
     <!-- SIDEBAR -->
     <div class="sidebar">
-      <div class="sidebar-avatar-wrap" id="sidebar-avatar-wrap" style="cursor:pointer">
+      <div class="sidebar-avatar-wrap" id="sidebar-avatar-wrap">
         <div class="sidebar-avatar" id="sidebar-avatar">?</div>
         <div class="sidebar-avatar-img" id="sidebar-avatar-img" style="display:none"></div>
         <input type="file" id="avatar-file-input" accept="image/*" style="display:none" />
       </div>
       <nav class="nav">
-        <button class="nav-btn active" data-tab="home" title="Главная">⌂</button>
-        <button class="nav-btn" data-tab="friends" title="Друзья">
-          ⁋
+        <!-- Home -->
+        <button class="nav-btn active" data-tab="home" title="Home">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M2 6.5L8 2l6 4.5V14a1 1 0 01-1 1H3a1 1 0 01-1-1V6.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M6 15v-5h4v5" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+        </button>
+        <!-- Friends -->
+        <button class="nav-btn" data-tab="friends" title="Friends">
+          <svg viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 13.5C1.5 11.015 3.515 9 6 9s4.5 2.015 4.5 4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M11 7.5c1.5 0 3 1 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="11" cy="4.5" r="2" stroke="currentColor" stroke-width="1.2"/></svg>
           <span class="nav-badge" id="friends-badge" style="display:none"></span>
         </button>
-        <button class="nav-btn" data-tab="notifications" title="Уведомления" style="position:relative">
-          ◎
+        <!-- Notifications -->
+        <button class="nav-btn" data-tab="notifications" title="Notifications" style="position:relative">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M8 2a4.5 4.5 0 00-4.5 4.5v2L2 10.5h12l-1.5-2v-2A4.5 4.5 0 008 2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M6.5 13a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
           <span class="nav-badge-count" id="notifs-badge" style="display:none"></span>
         </button>
-        <button class="nav-btn" data-tab="profile" title="Профиль">◯</button>
+        <!-- Profile -->
+        <button class="nav-btn" data-tab="profile" title="Profile">
+          <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M2.5 13.5C2.5 11.015 5.015 9 8 9s5.5 2.015 5.5 4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </button>
       </nav>
       <div class="sidebar-bottom">
-        <button class="nav-btn" id="btn-theme" title="Сменить тему">◑</button>
+        <!-- Theme -->
+        <button class="nav-btn" id="btn-theme" title="Switch theme">
+          <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 2.5v11M2.5 8h11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/><path d="M8 2.5A5.5 5.5 0 018 13.5V2.5z" fill="currentColor"/></svg>
+        </button>
       </div>
     </div>
 
@@ -136,25 +98,37 @@
       <div class="tab-content active" id="tab-home">
         <div class="home-search-area">
           <div class="home-search-bar">
-            <span class="search-icon-big">⊙</span>
-            <input type="text" id="home-search-input" placeholder="Поиск YouTube, Twitch..." />
-            <button class="btn-create-room" id="btn-create-room">＋ СОЗДАТЬ</button>
+            <span class="search-icon-big">
+              <svg viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.2"/><path d="M10.5 10.5l3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            </span>
+            <input type="text" id="home-search-input" placeholder="Search YouTube, paste a link..." />
+            <button class="btn-create-room" id="btn-create-room">+ New room</button>
           </div>
           <div class="platforms-grid">
-            <button class="platform-btn" data-platform="youtube"><span>YouTube</span></button>
-            <button class="platform-btn" data-platform="twitch"><span>Twitch</span></button>
-            <button class="platform-btn" data-platform="browser"><span>Браузер</span></button>
-            <button class="platform-btn" data-platform="file"><span>Файл</span></button>
+            <button class="platform-btn" data-platform="youtube">
+              <svg viewBox="0 0 16 16" fill="none"><rect x="1.5" y="3.5" width="13" height="9" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M7 6l3.5 2L7 10V6z" fill="currentColor"/></svg>
+              YouTube
+            </button>
+            <button class="platform-btn" data-platform="twitch">
+              <svg viewBox="0 0 16 16" fill="none"><path d="M3 2H14v8l-3 3H8l-2 2v-2H3V2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M7 5.5v3M10.5 5.5v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              Twitch
+            </button>
+            <button class="platform-btn" data-platform="browser">
+              <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 2.5c-2 2-2 9 0 11M8 2.5c2 2 2 9 0 11M2.5 8h11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              Browser
+            </button>
+            <button class="platform-btn" data-platform="file">
+              <svg viewBox="0 0 16 16" fill="none"><path d="M4 2h5.5L12 4.5V14H4V2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M9 2v3h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              File
+            </button>
           </div>
         </div>
-        <div class="rooms-header">
-          <span class="section-label">● ПУБЛИЧНЫЕ КОМНАТЫ <span id="rooms-count">0</span></span>
-        </div>
+        <div class="section-label">Public rooms · <span id="rooms-count">0</span></div>
         <div class="rooms-list" id="rooms-list">
           <div class="empty-state">
-            <div class="empty-icon">▶</div>
-            <div class="empty-text">НЕТ АКТИВНЫХ КОМНАТ</div>
-            <button class="btn-link" id="btn-create-first">СОЗДАТЬ ПЕРВУЮ →</button>
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 3H19a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" stroke="currentColor" stroke-width="1.2"/><path d="M10 8l5 4-5 4V8z" fill="currentColor" opacity="0.4"/></svg>
+            <div class="empty-text">No active rooms</div>
+            <button class="btn-link" id="btn-create-first">Create the first one →</button>
           </div>
         </div>
       </div>
@@ -163,28 +137,35 @@
       <div class="tab-content" id="tab-friends">
         <div class="friends-search-area">
           <div class="search-bar">
-            <span class="search-icon">⊙</span>
-            <input type="text" id="friends-search-input" placeholder="Поиск по нику..." />
+            <span class="search-icon">
+              <svg viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.2"/><path d="M10.5 10.5l3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            </span>
+            <input type="text" id="friends-search-input" placeholder="Find by username..." />
           </div>
-          <button class="btn-primary-sm" id="btn-search-users">НАЙТИ</button>
+          <button class="btn-primary-sm" id="btn-search-users">Search</button>
         </div>
         <div id="incoming-section" style="display:none">
-          <div class="section-label">ЗАЯВКИ <span id="requests-count"></span></div>
+          <div class="section-label">Requests · <span id="requests-count"></span></div>
           <div id="incoming-list"></div>
         </div>
         <div id="search-results-section" style="display:none">
-          <div class="section-label">РЕЗУЛЬТАТЫ</div>
+          <div class="section-label">Results</div>
           <div id="search-results-list"></div>
         </div>
-        <div class="section-label">ДРУЗЬЯ <span id="friends-count">0</span></div>
-        <div id="friends-list"><div class="empty-state"><div class="empty-text">ПОКА НИКОГО</div></div></div>
+        <div class="section-label">Friends · <span id="friends-count">0</span></div>
+        <div id="friends-list">
+          <div class="empty-state"><div class="empty-text">No friends yet</div></div>
+        </div>
       </div>
 
       <!-- NOTIFICATIONS TAB -->
       <div class="tab-content" id="tab-notifications">
-        <div class="section-label" style="padding:16px 20px 8px">УВЕДОМЛЕНИЯ</div>
-        <div id="notifs-list" style="flex:1;overflow-y:auto">
-          <div class="empty-state"><div class="empty-icon">◎</div><div class="empty-text">НЕТ УВЕДОМЛЕНИЙ</div></div>
+        <div class="section-label">Notifications</div>
+        <div id="notifs-list">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M6 10a6 6 0 0112 0v4l2 2H4l2-2v-4zM10 18a2 2 0 004 0" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            <div class="empty-text">All caught up</div>
+          </div>
         </div>
       </div>
 
@@ -196,7 +177,9 @@
               <span id="profile-avatar-letter">?</span>
             </div>
             <div class="profile-avatar-img" id="profile-avatar-img" style="display:none"></div>
-            <button class="avatar-edit-btn" id="btn-edit-avatar">✎</button>
+            <button class="avatar-edit-btn" id="btn-edit-avatar">
+              <svg viewBox="0 0 12 12" fill="none"><path d="M8.5 1.5l2 2-7 7H1.5v-2l7-7z" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>
+            </button>
             <input type="file" id="profile-avatar-input" accept="image/*" style="display:none" />
           </div>
           <div class="profile-info">
@@ -204,15 +187,22 @@
           </div>
         </div>
         <div class="stats-grid">
-          <div class="stat-card"><div class="stat-val">0</div><div class="stat-key">ЧАСОВ</div></div>
-          <div class="stat-card"><div class="stat-val" id="stat-friends">0</div><div class="stat-key">ДРУЗЕЙ</div></div>
-          <div class="stat-card"><div class="stat-val">0</div><div class="stat-key">КОМНАТ</div></div>
-          <div class="stat-card"><div class="stat-val">0</div><div class="stat-key">ПРОСМОТРОВ</div></div>
+          <div class="stat-card"><div class="stat-val">0</div><div class="stat-key">Hours</div></div>
+          <div class="stat-card"><div class="stat-val" id="stat-friends">0</div><div class="stat-key">Friends</div></div>
+          <div class="stat-card"><div class="stat-val">0</div><div class="stat-key">Rooms</div></div>
+          <div class="stat-card"><div class="stat-val">0</div><div class="stat-key">Watched</div></div>
         </div>
-        <div class="section-label">НАСТРОЙКИ</div>
+        <div class="section-label">Settings</div>
         <div class="settings-list">
-          <div class="settings-item" id="settings-account-item"><span class="si-icon">⚙</span><span class="si-label">Настройки аккаунта</span><span class="si-arrow">→</span></div>
-          <div class="settings-item" id="btn-logout-item"><span class="si-icon">⊣</span><span class="si-label">Выйти</span></div>
+          <div class="settings-item" id="settings-account-item">
+            <span class="si-icon"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M2.5 13.5C2.5 11.015 5.015 9 8 9s5.5 2.015 5.5 4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></span>
+            <span class="si-label">Account settings</span>
+            <span class="si-arrow"><svg viewBox="0 0 12 12" fill="none"><path d="M4.5 2.5l4 3.5-4 3.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </div>
+          <div class="settings-item" id="btn-logout-item">
+            <span class="si-icon"><svg viewBox="0 0 16 16" fill="none"><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M10.5 10.5L13 8l-2.5-2.5M13 8H6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="si-label">Sign out</span>
+          </div>
         </div>
       </div>
 
@@ -222,43 +212,72 @@
   <!-- ROOM -->
   <div id="screen-room" class="screen">
     <div class="room-topbar">
-      <button class="tb-icon-btn" id="btn-leave-room">✕</button>
+      <!-- Leave -->
+      <button class="tb-icon-btn" id="btn-leave-room" title="Leave room">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M2.5 2.5l11 11M13.5 2.5l-11 11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      </button>
       <div class="room-topbar-center">
-        <div class="wordmark-wrap sm"><span class="wordmark-text">OUTRO</span><div class="wordmark-line"></div></div>
+        <span class="wordmark sm">OUTRO</span>
       </div>
       <div class="room-topbar-actions">
-        <button class="tb-icon-btn" id="btn-change-video" title="Сменить видео">⇄</button>
-        <button class="tb-icon-btn" id="btn-screenshare" title="Screen Share">⊡</button>
-        <button class="tb-icon-btn" id="btn-participants" title="Участники">⁋ <span id="participants-count">0</span></button>
-        <button class="tb-icon-btn" id="btn-invite" title="Пригласить">⊕</button>
-        <button class="tb-icon-btn danger" id="btn-delete-room" title="Удалить комнату" style="display:none">🗑</button>
+        <!-- Change video -->
+        <button class="tb-icon-btn" id="btn-change-video" title="Change video">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M2 5h9M2 8h7M2 11h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M11 7l3.5 3L11 13V7z" fill="currentColor" opacity="0.7"/></svg>
+        </button>
+        <!-- Screenshare -->
+        <button class="tb-icon-btn" id="btn-screenshare" title="Share screen">
+          <svg viewBox="0 0 16 16" fill="none"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M6 13.5h4M8 11.5v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M6 6.5L8 5l2 1.5v4H6v-4z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>
+        </button>
+        <!-- Participants -->
+        <button class="tb-icon-btn" id="btn-participants" title="Participants" style="gap:4px">
+          <svg viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 13.5C1.5 11.015 3.515 9 6 9s4.5 2.015 4.5 4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M11 7.5c1.5 0 3 1 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="11" cy="4.5" r="2" stroke="currentColor" stroke-width="1.2"/></svg>
+          <span class="icon-btn-label" id="participants-count">0</span>
+        </button>
+        <!-- Invite -->
+        <button class="tb-icon-btn" id="btn-invite" title="Invite">
+          <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 5.5v5M5.5 8h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </button>
+        <!-- Delete (host only) -->
+        <button class="tb-icon-btn danger" id="btn-delete-room" title="Delete room" style="display:none">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M3 4.5h10M6 4.5V3h4v1.5M6.5 7v5M9.5 7v5M4 4.5l.5 8.5h7l.5-8.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
       </div>
     </div>
 
     <div class="room-body">
       <!-- VIEWER -->
       <div class="room-viewer">
+        <!-- Browser bar -->
         <div class="browser-bar" id="browser-bar" style="display:none">
-          <button class="tb-icon-btn sm" id="btn-browser-back">←</button>
-          <button class="tb-icon-btn sm" id="btn-browser-forward">→</button>
-          <button class="tb-icon-btn sm" id="btn-browser-refresh">↺</button>
+          <button class="tb-icon-btn sm" id="btn-browser-back" title="Back">
+            <svg viewBox="0 0 14 14" fill="none"><path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="tb-icon-btn sm" id="btn-browser-forward" title="Forward">
+            <svg viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="tb-icon-btn sm" id="btn-browser-refresh" title="Refresh">
+            <svg viewBox="0 0 14 14" fill="none"><path d="M2.5 7a4.5 4.5 0 007.5-3.3M11.5 7a4.5 4.5 0 01-7.5 3.3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M9.5 3.5l.5 1.5 1.5-.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
           <div class="browser-addr-wrap">
-            <input type="text" id="browser-address" placeholder="Введи URL или поисковый запрос..." />
+            <input type="text" id="browser-address" placeholder="Enter URL or search..." />
           </div>
-          <button class="btn-primary-sm" id="btn-browser-go">GO</button>
+          <button class="btn-primary-sm" id="btn-browser-go">Go</button>
         </div>
+
+        <!-- Video area -->
         <div class="viewer-area" id="viewer-area">
           <div class="viewer-placeholder" id="viewer-placeholder">
-            <div class="vp-icon">▶</div>
-            <div class="vp-text">НЕТ ВИДЕО</div>
-            <div class="vp-sub">НАЖМИ ⇄ ЧТОБЫ ДОБАВИТЬ</div>
+            <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M10 9l5 3-5 3V9z" fill="currentColor" opacity="0.5"/></svg>
+            <div class="vp-text">No video</div>
+            <div class="vp-sub">Press change video to add content</div>
           </div>
           <webview id="main-webview" style="display:none;width:100%;height:100%;" allowpopups partition="persist:main"></webview>
           <webview id="browser-webview" style="display:none;width:100%;height:100%;" src="https://www.google.com" allowpopups partition="persist:browser"></webview>
         </div>
+
+        <!-- Player controls (non-YT) -->
         <div class="player-controls" id="player-controls" style="display:none">
           <div class="pc-title" id="room-video-title"></div>
-          <button class="btn-play-pause" id="btn-play-pause">▶ ИГРАТЬ</button>
         </div>
       </div>
 
@@ -267,22 +286,35 @@
         <div class="chat-messages" id="chat-messages"></div>
         <div id="typing-indicator"></div>
         <div class="chat-input-row">
-          <button class="chat-attach-btn" id="btn-send-image" title="Файл">▨</button>
-          <input type="text" class="chat-input" id="chat-input" placeholder="Написать..." />
-          <button class="chat-send-btn" id="btn-send">➤</button>
+          <button class="chat-attach-btn" id="btn-send-image" title="Attach file">
+            <svg viewBox="0 0 16 16" fill="none"><path d="M13.5 8.5l-5.5 5.5a4 4 0 01-5.5-5.5l6-6a2.5 2.5 0 013.5 3.5L6 12a1 1 0 01-1.5-1.5L10 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <input type="text" class="chat-input" id="chat-input" placeholder="Message..." />
+          <button class="chat-send-btn" id="btn-send" title="Send">
+            <svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 4l4 3-4 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
         </div>
-        <!-- QUEUE PANEL -->
+
+        <!-- QUEUE -->
         <div class="queue-panel">
           <div class="queue-header" id="queue-header" onclick="this.nextElementSibling.nextElementSibling.classList.toggle('hidden');this.querySelector('.queue-toggle-icon').classList.toggle('open')">
-            <span class="queue-header-label">▤ ОЧЕРЕДЬ</span>
-            <span class="queue-toggle-icon">▾</span>
+            <span class="queue-header-label">Queue</span>
+            <span class="queue-toggle-icon">
+              <svg viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
           </div>
           <div class="queue-actions">
-            <button class="btn-queue-action" id="btn-add-to-queue">+ ДОБАВИТЬ</button>
-            <button class="btn-queue-action" id="btn-skip" style="opacity:0.4">⏭ СКИП</button>
+            <button class="btn-queue-action" id="btn-add-to-queue">
+              <svg viewBox="0 0 12 12" fill="none"><path d="M6 2v8M2 6h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              Add
+            </button>
+            <button class="btn-queue-action" id="btn-skip" style="opacity:0.4">
+              <svg viewBox="0 0 12 12" fill="none"><path d="M2 3l4 3-4 3V3zM9 3v6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Skip
+            </button>
           </div>
           <div class="queue-body" id="queue-list">
-            <div style="color:var(--fg3);font-size:10px;font-family:var(--mono);letter-spacing:1px;padding:4px 0">ОЧЕРЕДЬ ПУСТА</div>
+            <div style="color:var(--fg3);font-size:9px;font-family:var(--mono);letter-spacing:1.5px;padding:4px 0;text-transform:uppercase">Empty queue</div>
           </div>
         </div>
       </div>
@@ -295,48 +327,54 @@
     <!-- YT SEARCH -->
     <div class="modal modal-wide" id="modal-yt-search" style="display:none">
       <div class="modal-header">
-        <button class="tb-icon-btn" id="btn-back-from-yt">←</button>
-        <div class="search-bar" style="flex:1;margin:0 10px">
-          <span class="search-icon">⊙</span>
-          <input type="text" id="yt-search-input" placeholder="Поиск на YouTube..." />
-          <button class="tb-icon-btn" id="btn-clear-yt" style="display:none">✕</button>
+        <button class="tb-icon-btn" id="btn-back-from-yt">
+          <svg viewBox="0 0 14 14" fill="none"><path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="search-bar" style="flex:1;margin:0 8px">
+          <span class="search-icon"><svg viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.2"/><path d="M10.5 10.5l3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></span>
+          <input type="text" id="yt-search-input" placeholder="Search YouTube..." />
+          <button class="tb-icon-btn" id="btn-clear-yt" style="display:none">
+            <svg viewBox="0 0 14 14" fill="none"><path d="M3.5 3.5l7 7M10.5 3.5l-7 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          </button>
         </div>
-        <button class="btn-primary-sm" id="btn-do-yt-search">НАЙТИ</button>
+        <button class="btn-primary-sm" id="btn-do-yt-search">Search</button>
       </div>
       <div class="modal-body" id="yt-search-results">
-        <div class="empty-state"><div class="empty-text">ВВЕДИТЕ ЗАПРОС</div></div>
+        <div class="empty-state"><div class="empty-text">Enter a search query</div></div>
       </div>
     </div>
 
     <!-- CHANGE VIDEO -->
     <div class="modal modal-wide" id="modal-change-video" style="display:none">
       <div class="modal-header">
-        <span class="modal-title">СМЕНИТЬ ВИДЕО</span>
-        <button class="tb-icon-btn modal-close">✕</button>
+        <span class="modal-title">Change video</span>
+        <button class="tb-icon-btn modal-close">
+          <svg viewBox="0 0 14 14" fill="none"><path d="M3.5 3.5l7 7M10.5 3.5l-7 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </button>
       </div>
       <div class="modal-body">
         <div class="source-tabs" id="change-source-tabs">
-          <button class="source-tab active" data-source="youtube">YOUTUBE</button>
-          <button class="source-tab" data-source="twitch">TWITCH</button>
-          <button class="source-tab" data-source="browser">БРАУЗЕР</button>
-          <button class="source-tab" data-source="file">ФАЙЛ</button>
+          <button class="source-tab active" data-source="youtube">YouTube</button>
+          <button class="source-tab" data-source="twitch">Twitch</button>
+          <button class="source-tab" data-source="browser">Browser</button>
+          <button class="source-tab" data-source="file">File</button>
         </div>
         <div id="change-yt-section">
-          <div class="search-bar" style="margin:12px 0">
-            <span class="search-icon">⊙</span>
-            <input type="text" id="change-yt-input" placeholder="Поиск YouTube..." />
+          <div class="search-bar" style="margin:10px 0">
+            <span class="search-icon"><svg viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.2"/><path d="M10.5 10.5l3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></span>
+            <input type="text" id="change-yt-input" placeholder="Search YouTube..." />
           </div>
-          <button class="btn-primary-sm" id="btn-change-yt-search">НАЙТИ</button>
-          <div id="change-yt-results" style="margin-top:12px;max-height:280px;overflow-y:auto"></div>
+          <button class="btn-primary-sm" id="btn-change-yt-search">Search</button>
+          <div id="change-yt-results" style="margin-top:10px;max-height:260px;overflow-y:auto"></div>
         </div>
         <div id="change-link-section" style="display:none">
-          <div class="section-label" id="change-link-label" style="margin-top:12px">ССЫЛКА</div>
-          <input class="field" id="change-link-input" placeholder="https://..." style="margin-top:8px" />
-          <button class="btn-primary" id="btn-apply-link" style="margin-top:10px">ПРИМЕНИТЬ</button>
+          <div class="section-label" id="change-link-label" style="padding:10px 0 6px">Link</div>
+          <input class="field" id="change-link-input" placeholder="https://..." style="margin-top:6px" />
+          <button class="btn-primary" id="btn-apply-link" style="margin-top:8px">Apply</button>
         </div>
         <div id="change-browser-section" style="display:none">
-          <div style="padding:16px 0;color:var(--fg3);font-family:var(--mono);font-size:11px;letter-spacing:1px">ОТКРОЕТ ВСТРОЕННЫЙ БРАУЗЕР ДЛЯ ВСЕХ</div>
-          <button class="btn-primary" id="btn-apply-browser">ОТКРЫТЬ БРАУЗЕР</button>
+          <div style="padding:14px 0 10px;color:var(--fg3);font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase">Opens the built-in browser for everyone</div>
+          <button class="btn-primary" id="btn-apply-browser">Open browser</button>
         </div>
       </div>
     </div>
@@ -344,8 +382,8 @@
     <!-- PARTICIPANTS -->
     <div class="modal" id="modal-participants" style="display:none">
       <div class="modal-header">
-        <span class="modal-title">УЧАСТНИКИ · <span id="modal-parts-count">0</span></span>
-        <button class="tb-icon-btn modal-close">✕</button>
+        <span class="modal-title">Participants · <span id="modal-parts-count">0</span></span>
+        <button class="tb-icon-btn modal-close"><svg viewBox="0 0 14 14" fill="none"><path d="M3.5 3.5l7 7M10.5 3.5l-7 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
       </div>
       <div class="modal-body" id="modal-parts-list"></div>
     </div>
@@ -353,25 +391,25 @@
     <!-- INVITE -->
     <div class="modal" id="modal-invite" style="display:none">
       <div class="modal-header">
-        <span class="modal-title">ПРИГЛАСИТЬ</span>
-        <button class="tb-icon-btn modal-close">✕</button>
+        <span class="modal-title">Invite</span>
+        <button class="tb-icon-btn modal-close"><svg viewBox="0 0 14 14" fill="none"><path d="M3.5 3.5l7 7M10.5 3.5l-7 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
       </div>
       <div class="modal-body">
-        <div class="section-label" style="margin-bottom:8px">ПРИГЛАСИТЬ ДРУЗЕЙ</div>
-        <div id="invite-friends-list" style="margin-bottom:16px;max-height:200px;overflow-y:auto"></div>
+        <div class="section-label" style="padding:0 0 8px">Invite friends</div>
+        <div id="invite-friends-list" style="margin-bottom:14px;max-height:180px;overflow-y:auto"></div>
         <div class="invite-box">
-          <div class="section-label">ССЫЛКА НА ВЕБ-ВЕРСИЮ</div>
+          <div class="section-label" style="padding:0 0 4px">Web link</div>
           <div class="invite-link">outro-web-znla.vercel.app</div>
         </div>
-        <button class="btn-primary" id="btn-copy-invite" style="margin-top:10px">КОПИРОВАТЬ ССЫЛКУ</button>
+        <button class="btn-primary" id="btn-copy-invite" style="margin-top:10px">Copy link</button>
       </div>
     </div>
 
     <!-- SCREENSHARE -->
     <div class="modal modal-wide" id="modal-screenshare" style="display:none">
       <div class="modal-header">
-        <span class="modal-title">ВЫБЕРИ ИСТОЧНИК</span>
-        <button class="tb-icon-btn modal-close">✕</button>
+        <span class="modal-title">Select source</span>
+        <button class="tb-icon-btn modal-close"><svg viewBox="0 0 14 14" fill="none"><path d="M3.5 3.5l7 7M10.5 3.5l-7 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
       </div>
       <div class="modal-body">
         <div id="ss-sources" class="ss-grid"></div>
@@ -381,58 +419,58 @@
     <!-- ACCOUNT -->
     <div class="modal" id="modal-account" style="display:none">
       <div class="modal-header">
-        <span class="modal-title">АККАУНТ</span>
-        <button class="tb-icon-btn modal-close">✕</button>
+        <span class="modal-title">Account</span>
+        <button class="tb-icon-btn modal-close"><svg viewBox="0 0 14 14" fill="none"><path d="M3.5 3.5l7 7M10.5 3.5l-7 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
       </div>
       <div class="modal-body">
-        <div class="section-label">НИК</div>
-        <input class="field" id="account-name-input" placeholder="Новый ник" style="margin-top:8px" />
-        <button class="btn-primary" id="btn-save-name" style="margin-top:8px">СОХРАНИТЬ НИК</button>
-        <div class="section-label" style="margin-top:20px">СМЕНИТЬ ПАРОЛЬ</div>
-        <input class="field" id="account-pwd-input" type="password" placeholder="Новый пароль (мин. 6 символов)" style="margin-top:8px" />
-        <button class="btn-primary" id="btn-save-pwd" style="margin-top:8px">СОХРАНИТЬ ПАРОЛЬ</button>
+        <div class="section-label" style="padding:0 0 6px">Username</div>
+        <input class="field" id="account-name-input" placeholder="New username" style="margin-top:6px" />
+        <button class="btn-primary" id="btn-save-name" style="margin-top:8px">Save username</button>
+        <div class="section-label" style="margin-top:20px;padding:0 0 6px">Password</div>
+        <input class="field" id="account-pwd-input" type="password" placeholder="New password (min. 6 chars)" style="margin-top:6px" />
+        <button class="btn-primary" id="btn-save-pwd" style="margin-top:8px">Save password</button>
       </div>
     </div>
 
     <!-- FRIEND PROFILE -->
     <div class="modal" id="modal-friend-profile" style="display:none">
       <div class="modal-header">
-        <span class="modal-title">ПРОФИЛЬ</span>
-        <button class="tb-icon-btn modal-close">✕</button>
+        <span class="modal-title">Profile</span>
+        <button class="tb-icon-btn modal-close"><svg viewBox="0 0 14 14" fill="none"><path d="M3.5 3.5l7 7M10.5 3.5l-7 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
       </div>
-      <div class="modal-body" style="text-align:center;padding-top:16px">
+      <div class="modal-body" style="text-align:center;padding-top:14px">
         <div class="fp-avatar-wrap">
           <div class="fp-avatar" id="fp-avatar">?</div>
           <div class="fp-avatar-img" id="fp-avatar-img" style="display:none"></div>
         </div>
         <div class="fp-name" id="fp-name">—</div>
-        <div id="fp-friends-count" style="color:var(--fg3);font-size:10px;font-family:var(--mono);letter-spacing:1px;margin-top:4px">0 друзей</div>
-        <button class="btn-primary" id="btn-add-friend" style="margin-top:20px">ДОБАВИТЬ В ДРУЗЬЯ</button>
-        <button class="btn-ghost" id="btn-fp-invite-room" style="margin-top:8px;display:none">ПРИГЛАСИТЬ В КОМНАТУ</button>
-        <div id="fp-already" style="display:none;color:var(--fg3);font-family:var(--mono);font-size:11px;letter-spacing:2px;margin-top:16px">УЖЕ В ДРУЗЬЯХ</div>
+        <div id="fp-friends-count" style="color:var(--fg3);font-size:10px;font-family:var(--mono);letter-spacing:1px;margin-top:3px">0 friends</div>
+        <button class="btn-primary" id="btn-add-friend" style="margin-top:20px">Add friend</button>
+        <button class="btn-ghost" id="btn-fp-invite-room" style="margin-top:8px;display:none">Invite to room</button>
+        <div id="fp-already" style="display:none;color:var(--fg3);font-family:var(--mono);font-size:9px;letter-spacing:2px;margin-top:14px;text-transform:uppercase">Already friends</div>
       </div>
     </div>
 
-    <!-- CREATE ROOM (quick) -->
+    <!-- CREATE ROOM -->
     <div class="modal" id="modal-quick-create" style="display:none">
       <div class="modal-header">
-        <span class="modal-title" id="quick-create-title">НОВАЯ КОМНАТА</span>
-        <button class="tb-icon-btn modal-close">✕</button>
+        <span class="modal-title" id="quick-create-title">New room</span>
+        <button class="tb-icon-btn modal-close"><svg viewBox="0 0 14 14" fill="none"><path d="M3.5 3.5l7 7M10.5 3.5l-7 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
       </div>
       <div class="modal-body">
-        <div class="section-label">НАЗВАНИЕ</div>
-        <input class="field" id="quick-title-input" placeholder="Название комнаты..." style="margin-top:8px" />
-        <div id="quick-link-section" style="display:none;margin-top:16px">
-          <div class="section-label" id="quick-link-label">ССЫЛКА</div>
-          <input class="field" id="quick-link-input" placeholder="https://..." style="margin-top:8px" />
+        <div class="section-label" style="padding:0 0 6px">Room name</div>
+        <input class="field" id="quick-title-input" placeholder="Name your room..." style="margin-top:6px" />
+        <div id="quick-link-section" style="display:none;margin-top:14px">
+          <div class="section-label" id="quick-link-label" style="padding:0 0 6px">Link</div>
+          <input class="field" id="quick-link-input" placeholder="https://..." style="margin-top:6px" />
         </div>
-        <div class="section-label" style="margin-top:16px">ПРИВАТНОСТЬ</div>
-        <div class="privacy-tabs" style="margin-top:8px">
-          <button class="privacy-tab active" data-privacy="public">ПУБЛИЧНАЯ</button>
-          <button class="privacy-tab" data-privacy="friends">ДРУЗЬЯ</button>
-          <button class="privacy-tab" data-privacy="private">ПРИВАТНАЯ</button>
+        <div class="section-label" style="margin-top:16px;padding:0 0 6px">Visibility</div>
+        <div class="privacy-tabs" style="margin-top:6px">
+          <button class="privacy-tab active" data-privacy="public">Public</button>
+          <button class="privacy-tab" data-privacy="friends">Friends</button>
+          <button class="privacy-tab" data-privacy="private">Private</button>
         </div>
-        <button class="btn-primary" id="btn-do-quick-create" style="margin-top:20px">СОЗДАТЬ →</button>
+        <button class="btn-primary" id="btn-do-quick-create" style="margin-top:18px">Create room →</button>
       </div>
     </div>
 
