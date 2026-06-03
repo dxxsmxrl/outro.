@@ -1,0 +1,13 @@
+2026/06/03-10:09:48.765 5fec Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/MANIFEST-000001
+2026/06/03-10:09:48.765 5fec Recovering log #4
+2026/06/03-10:09:48.766 5fec Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/000004.log 
+2026/06/03-10:09:48.773 5878 Level-0 table #8: started
+2026/06/03-10:09:48.778 5878 Level-0 table #8: 4521 bytes OK
+2026/06/03-10:09:48.782 5878 Delete type=0 #4
+2026/06/03-10:09:48.783 5878 Manual compaction at level-0 from '\x00\x04\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x05\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/06/03-10:10:27.990 5fec Compacting 1@1 + 1@2 files
+2026/06/03-10:10:28.001 5fec Generated table #9@1: 41 keys, 2887 bytes
+2026/06/03-10:10:28.001 5fec Compacted 1@1 + 1@2 files => 2887 bytes
+2026/06/03-10:10:28.004 5fec compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/06/03-10:10:28.004 5fec Delete type=2 #5
+2026/06/03-10:10:28.004 5fec Delete type=2 #8

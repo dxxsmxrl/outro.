@@ -843,20 +843,36 @@ function applySync(data) {
 function setupBrowserSync() {
   if (browserSyncUnsub) { browserSyncUnsub(); browserSyncUnsub = null; }
   if (!currentRoom) return;
+
+  // Guest: listen for URL changes from Firebase and apply to webview
+  // Host: skip applying (ignoreBrowserSync prevents host from being redirected by own writes)
   browserSyncUnsub = onValue(ref(db, `rooms/${currentRoom.id}/browserUrl`), snap => {
     const data = snap.val();
-    if (!data || ignoreBrowserSync) return;
+    if (!data) return;
+    // Don't apply if we just wrote this ourselves (host or whoever navigated)
+    if (ignoreBrowserSync) return;
     const bwv = $('browser-webview');
     if (bwv && data.url && bwv.getAttribute('src') !== data.url) {
-      bwv.setAttribute('src', data.url); $('browser-address').value = data.url;
+      bwv.setAttribute('src', data.url);
+      $('browser-address').value = data.url;
     }
   });
+
   const bwv = $('browser-webview');
   if (bwv) {
+    // Remove any previously attached handlers to avoid duplicates
+    if (bwv.__navHandler) {
+      bwv.removeEventListener('did-navigate', bwv.__navHandler);
+      bwv.removeEventListener('did-navigate-in-page', bwv.__navHandler);
+    }
+    // Always sync navigation — whoever navigates (host typing URL, clicking links) syncs to Firebase.
+    // Guests won't navigate themselves so this is effectively host-only.
     const navHandler = e => {
       $('browser-address').value = e.url;
-      if (isBrowserHost && currentRoom) syncBrowserUrl(e.url);
+      // Sync any navigation (address bar, link clicks, back/forward) if we are the one driving
+      if (currentRoom && (isBrowserHost || isHost)) syncBrowserUrl(e.url);
     };
+    bwv.__navHandler = navHandler;
     bwv.addEventListener('did-navigate', navHandler);
     bwv.addEventListener('did-navigate-in-page', navHandler);
   }
@@ -864,8 +880,9 @@ function setupBrowserSync() {
 
 async function syncBrowserUrl(url) {
   if (!currentRoom || !user) return;
+  // Temporarily ignore incoming Firebase updates so we don't apply our own write back to ourselves
   ignoreBrowserSync = true;
-  setTimeout(() => { ignoreBrowserSync = false; }, 1000);
+  setTimeout(() => { ignoreBrowserSync = false; }, 2000);
   await set(ref(db, `rooms/${currentRoom.id}/browserUrl`), { url, uid: user.uid, ts: Date.now() });
 }
 
@@ -876,7 +893,9 @@ function navBrowser(input) {
     url = url.includes('.') && !url.includes(' ') ? `https://${url}` : `https://www.google.com/search?q=${encodeURIComponent(url)}&gl=us&hl=en`;
   }
   isBrowserHost = true;
-  $('browser-webview').setAttribute('src', url); $('browser-address').value = url;
+  const bwv = $('browser-webview');
+  bwv.setAttribute('src', url);
+  $('browser-address').value = url;
   syncBrowserUrl(url);
 }
 
