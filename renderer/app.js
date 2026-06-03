@@ -519,6 +519,12 @@ function enterRoom(room) {
   clearInterval(posTimer);
   if (ssStream) { ssStream.getTracks().forEach(t => t.stop()); ssStream = null; }
 
+  // Глушим оба webview перед входом в новую комнату
+  const _wv = $('main-webview'); const _bwv = $('browser-webview');
+  if (_wv) { stopWebviewAudio(_wv); _wv.style.display = 'none'; }
+  if (_bwv) { stopWebviewAudio(_bwv); _bwv.style.display = 'none'; }
+  viewerSrc = '';
+
   currentRoom = room;
   isPlaying = false; isBrowserHost = false; lastPos = 0; ignoreSyncUntil = 0;
   viewerSrc = '';
@@ -726,10 +732,7 @@ function updateViewer() {
   if (ssv) ssv.style.display = 'none';
 
   if (currentRoom.source === 'youtube' && currentRoom.videoId) {
-    // Убиваем браузер если был активен
-    if (bwv.getAttribute('src') && bwv.getAttribute('src') !== 'about:blank') {
-      stopWebviewAudio(bwv);
-    }
+    stopWebviewAudio(bwv); bwv.style.display = 'none';
     const src = `https://www.youtube.com/watch?v=${currentRoom.videoId}`;
     if (viewerSrc !== src) {
       wv.setAttribute('src', src); viewerSrc = src;
@@ -737,30 +740,19 @@ function updateViewer() {
     }
     wv.style.display = '';
   } else if (currentRoom.source === 'browser') {
-    // Убиваем main-webview если был активен
-    if (viewerSrc && viewerSrc !== 'about:blank') {
-      stopWebviewAudio(wv); viewerSrc = '';
-    }
+    stopWebviewAudio(wv); wv.style.display = 'none'; viewerSrc = '';
     bwv.style.display = '';
     if (bb) bb.style.display = 'flex';
     setupBrowserSync();
   } else if (currentRoom.url) {
-    // Убиваем браузер если был активен
-    if (bwv.getAttribute('src') && bwv.getAttribute('src') !== 'about:blank') {
-      stopWebviewAudio(bwv);
-    }
+    stopWebviewAudio(bwv); bwv.style.display = 'none';
     const src = currentRoom.url;
     if (viewerSrc !== src) { wv.setAttribute('src', src); viewerSrc = src; }
     wv.style.display = '';
     if (pc) pc.style.display = '';
   } else {
-    // Нет источника — глушим всё
-    if (viewerSrc && viewerSrc !== 'about:blank') {
-      stopWebviewAudio(wv); viewerSrc = '';
-    }
-    if (bwv.getAttribute('src') && bwv.getAttribute('src') !== 'about:blank') {
-      stopWebviewAudio(bwv);
-    }
+    stopWebviewAudio(wv); stopWebviewAudio(bwv);
+    viewerSrc = '';
     ph.style.display = '';
   }
 }
