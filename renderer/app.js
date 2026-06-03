@@ -744,6 +744,11 @@ function updateViewer() {
     wv.style.display = '';
   } else if (currentRoom.source === 'browser') {
     stopWebviewAudio(wv); wv.style.display = 'none'; viewerSrc = '';
+    // Если webview ещё не грузился — открываем Google как стартовую
+    if (!bwv.getAttribute('src') || bwv.getAttribute('src') === 'about:blank') {
+      bwv.setAttribute('src', 'https://www.google.com');
+      $('browser-address').value = 'https://www.google.com';
+    }
     bwv.style.display = '';
     if (bb) bb.style.display = 'flex';
     setupBrowserSync();

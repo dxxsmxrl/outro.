@@ -1,3 +1,6 @@
-2026/06/03-10:35:13.553 3938 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\Local Storage\leveldb/MANIFEST-000001
-2026/06/03-10:35:13.554 3938 Recovering log #4
-2026/06/03-10:35:13.555 3938 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\Local Storage\leveldb/000004.log 
+2026/06/03-10:38:28.045 5dc4 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\Local Storage\leveldb/MANIFEST-000001
+2026/06/03-10:38:28.046 5dc4 Recovering log #4
+2026/06/03-10:38:28.046 5dc4 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\Partitions\browser\Local Storage\leveldb/000004.log 
+2026/06/03-10:38:36.081 58f4 Level-0 table #7: started
+2026/06/03-10:38:36.085 58f4 Level-0 table #7: 33014 bytes OK
+2026/06/03-10:38:36.087 58f4 Delete type=0 #4
