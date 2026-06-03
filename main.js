@@ -39,6 +39,9 @@ function setupAdBlock(ses) {
 function createWindow() {
   // Настраиваем блокировку для всех сессий ДО создания окна
   setupAdBlock(session.defaultSession);
+  // Блокируем рекламу для partition webview (persist:main и persist:browser)
+  setupAdBlock(session.fromPartition('persist:main'));
+  setupAdBlock(session.fromPartition('persist:browser'));
 
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -193,12 +196,19 @@ app.on('web-contents-created', (event, contents) => {
       // Автоматически пропускаем рекламу если всё же прорвалась
       contents.executeJavaScript(`
         (function() {
-          var skipAd = setInterval(function() {
-            var skip = document.querySelector('.ytp-ad-skip-button, .ytp-skip-ad-button');
-            if (skip) { skip.click(); }
+          setInterval(function() {
+            // Скип кнопка
+            var skip = document.querySelector('.ytp-ad-skip-button, .ytp-skip-ad-button, .ytp-ad-skip-button-modern');
+            if (skip) skip.click();
+            // Перемотка рекламного видео в конец
             var adVid = document.querySelector('.ad-showing video');
-            if (adVid) { adVid.currentTime = adVid.duration; }
-          }, 300);
+            if (adVid && adVid.duration && !isNaN(adVid.duration)) {
+              adVid.currentTime = adVid.duration;
+            }
+            // Убираем оверлеи
+            var overlay = document.querySelector('.ytp-ad-player-overlay');
+            if (overlay) overlay.remove();
+          }, 200);
         })();
       `).catch(() => {});
     });
