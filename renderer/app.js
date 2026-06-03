@@ -521,7 +521,7 @@ function enterRoom(room) {
 
   // Глушим оба webview перед входом в новую комнату
   const _wv = $('main-webview'); const _bwv = $('browser-webview');
-  if (_wv) { stopWebviewAudio(_wv); _wv.style.display = 'none'; }
+  if (_wv) { stopWebviewAudio(_wv); _wv.style.display = 'none'; setTimeout(() => { try { if (viewerSrc) _wv.setAttribute('src', 'about:blank'); } catch {} }, 300); }
   if (_bwv) { stopWebviewAudio(_bwv); _bwv.style.display = 'none'; }
   viewerSrc = '';
 
@@ -704,19 +704,16 @@ async function openUserProfileByName(name, uid) {
 // ===== STOP WEBVIEW AUDIO =====
 function stopWebviewAudio(webview) {
   if (!webview) return;
+  // Только паузим медиа — не трогаем src чтобы не вызывать ERR_ABORTED
   try {
-    const src = webview.getAttribute('src');
-    if (src && src !== 'about:blank') {
-      webview.executeJavaScript(`
-        (function() {
-          document.querySelectorAll('video, audio').forEach(function(m) {
-            m.pause(); m.src = ''; m.load();
-          });
-        })();
-      `).catch(() => {});
-    }
+    webview.executeJavaScript(`
+      (function() {
+        document.querySelectorAll('video, audio').forEach(function(m) {
+          try { m.pause(); m.volume = 0; } catch(e) {}
+        });
+      })();
+    `).catch(() => {});
   } catch {}
-  try { webview.setAttribute('src', 'about:blank'); } catch {}
 }
 
 
@@ -960,9 +957,17 @@ function leaveRoom() {
   messagesUnsub = participantsUnsub = syncUnsub = roomDataUnsub = browserSyncUnsub = typingUnsub = queueUnsub = commandUnsub = null;
   if (ssStream) { ssStream.getTracks().forEach(t => t.stop()); ssStream = null; }
   const wv = $('main-webview');
-  if (wv) { stopWebviewAudio(wv); wv.style.display = 'none'; viewerSrc = ''; }
+  if (wv) {
+    stopWebviewAudio(wv);
+    setTimeout(() => { try { wv.setAttribute('src', 'about:blank'); } catch {} }, 300);
+    wv.style.display = 'none'; viewerSrc = '';
+  }
   const bwv = $('browser-webview');
-  if (bwv) { stopWebviewAudio(bwv); bwv.style.display = 'none'; }
+  if (bwv) {
+    stopWebviewAudio(bwv);
+    setTimeout(() => { try { bwv.setAttribute('src', 'about:blank'); } catch {} }, 300);
+    bwv.style.display = 'none';
+  }
   currentRoom = null; isPlaying = false; isHost = false;
   screen('main');
 }

@@ -1,13 +1,13 @@
-2026/06/03-10:40:22.470 3a08 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/MANIFEST-000001
-2026/06/03-10:40:22.470 3a08 Recovering log #27
-2026/06/03-10:40:22.471 3a08 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/000027.log 
-2026/06/03-10:40:22.477 2b0 Level-0 table #32: started
-2026/06/03-10:40:22.493 2b0 Level-0 table #32: 3273 bytes OK
-2026/06/03-10:40:22.495 2b0 Delete type=0 #27
-2026/06/03-10:40:22.495 3a08 Manual compaction at level-0 from '\x00\x0a\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x0b\x00\x00\x00' @ 0 : 0; will stop at (end)
-2026/06/03-10:41:02.487 4d34 Compacting 1@1 + 1@2 files
-2026/06/03-10:41:02.498 4d34 Generated table #33@1: 40 keys, 2881 bytes
-2026/06/03-10:41:02.499 4d34 Compacted 1@1 + 1@2 files => 2881 bytes
-2026/06/03-10:41:02.500 4d34 compacted to: files[ 0 0 1 0 0 0 0 ]
-2026/06/03-10:41:02.500 4d34 Delete type=2 #29
-2026/06/03-10:41:02.500 4d34 Delete type=2 #32
+2026/06/03-10:43:17.775 5d50 Reusing MANIFEST C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/MANIFEST-000001
+2026/06/03-10:43:17.776 5d50 Recovering log #31
+2026/06/03-10:43:17.776 5d50 Reusing old log C:\Users\rainb\outro-desktop\%TEMP%\outro-test\IndexedDB\file__0.indexeddb.leveldb/000031.log 
+2026/06/03-10:43:17.789 1458 Level-0 table #36: started
+2026/06/03-10:43:17.800 1458 Level-0 table #36: 3307 bytes OK
+2026/06/03-10:43:17.802 1458 Delete type=0 #31
+2026/06/03-10:43:17.802 5d50 Manual compaction at level-0 from '\x00\x0b\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x0c\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/06/03-10:43:59.403 5d50 Compacting 1@1 + 1@2 files
+2026/06/03-10:43:59.415 5d50 Generated table #37@1: 39 keys, 2811 bytes
+2026/06/03-10:43:59.415 5d50 Compacted 1@1 + 1@2 files => 2811 bytes
+2026/06/03-10:43:59.416 5d50 compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/06/03-10:43:59.417 5d50 Delete type=2 #33
+2026/06/03-10:43:59.417 5d50 Delete type=2 #36
