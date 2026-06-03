@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: wss: data: blob:; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https: wss: ws:; img-src 'self' data: https: blob:;" />
+  <title>Outro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@200;300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- TITLEBAR -->
+  <div class="titlebar">
+    <div class="titlebar-drag"></div>
+    <div class="titlebar-center">
+      <div class="wordmark-wrap"><span class="wordmark-text">OUTRO</span><div class="wordmark-line"></div></div>
+    </div>
+    <div class="titlebar-controls">
+      <button class="tb-btn" id="btn-minimize">—</button>
+      <button class="tb-btn" id="btn-maximize">□</button>
+      <button class="tb-btn tb-close" id="btn-close">✕</button>
+    </div>
+  </div>
+
+  <!-- ONBOARDING -->
+  <div id="screen-onboarding" class="screen active">
+    <div class="auth-bg"></div>
+    <div class="auth-container">
+      <div class="auth-logo">
+        <div class="wordmark-wrap xl"><span class="wordmark-text">OUTRO</span><div class="wordmark-line"></div></div>
+        <div class="auth-tagline">DIVINA COMMEDIA</div>
+      </div>
+      <div class="auth-form">
+        <div class="auth-mode-label" id="auth-mode-label">ВХОД</div>
+        <div id="username-wrap" style="display:none"><input class="field" id="input-username" placeholder="Ник (будет виден всем)" autocomplete="off" /></div>
+        <input class="field" id="input-email" placeholder="Email" type="email" autocomplete="off" />
+        <input class="field" id="input-password" placeholder="Пароль" type="password" />
+        <div class="auth-error" id="auth-error"></div>
+        <button class="btn-primary" id="btn-auth">ВОЙТИ →</button>
+        <div class="divider"><span>или</span></div>
+        <button class="btn-ghost" id="btn-toggle-mode">СОЗДАТЬ АККАУНТ</button>
+      </div>
+      <div class="auth-footer">PROD. BY MARL</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="screen-main" class="screen">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-avatar-wrap" id="sidebar-avatar-wrap" style="cursor:pointer">
+        <div class="sidebar-avatar" id="sidebar-avatar">?</div>
+        <div class="sidebar-avatar-img" id="sidebar-avatar-img" style="display:none"></div>
+        <input type="file" id="avatar-file-input" accept="image/*" style="display:none" />
+      </div>
+      <nav class="nav">
+        <button class="nav-btn active" data-tab="home" title="Главная">⌂</button>
+        <button class="nav-btn" data-tab="friends" title="Друзья">
+          ⁋
+          <span class="nav-badge" id="friends-badge" style="display:none"></span>
+        </button>
+        <button class="nav-btn" data-tab="profile" title="Профиль">◯</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <button class="nav-btn" id="btn-theme" title="Сменить тему">◑</button>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+
+      <!-- HOME TAB -->
+      <div class="tab-content active" id="tab-home">
+        <div class="home-search-area">
+          <div class="home-search-bar">
+            <span class="search-icon-big">⊙</span>
+            <input type="text" id="home-search-input" placeholder="Поиск YouTube, Twitch..." />
+            <button class="btn-create-room" id="btn-create-room">＋ СОЗДАТЬ</button>
+          </div>
+          <div class="platforms-grid">
+            <button class="platform-btn" data-platform="youtube"><span>YouTube</span></button>
+            <button class="platform-btn" data-platform="twitch"><span>Twitch</span></button>
+            <button class="platform-btn" data-platform="browser"><span>Браузер</span></button>
+            <button class="platform-btn" data-platform="file"><span>Файл</span></button>
+          </div>
+        </div>
+        <div class="rooms-header">
+          <span class="section-label">● ПУБЛИЧНЫЕ КОМНАТЫ <span id="rooms-count">0</span></span>
+        </div>
+        <div class="rooms-list" id="rooms-list">
+          <div class="empty-state">
+            <div class="empty-icon">▶</div>
+            <div class="empty-text">НЕТ АКТИВНЫХ КОМНАТ</div>
+            <button class="btn-link" id="btn-create-first">СОЗДАТЬ ПЕРВУЮ →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FRIENDS TAB -->
+      <div class="tab-content" id="tab-friends">
+        <div class="friends-search-area">
+          <div class="search-bar">
+            <span class="search-icon">⊙</span>
+            <input type="text" id="friends-search-input" placeholder="Поиск по нику..." />
+          </div>
+          <button class="btn-primary-sm" id="btn-search-users">НАЙТИ</button>
+        </div>
+        <div id="incoming-section" style="display:none">
+          <div class="section-label">ЗАЯВКИ <span id="requests-count"></span></div>
+          <div id="incoming-list"></div>
+        </div>
+        <div id="search-results-section" style="display:none">
+          <div class="section-label">РЕЗУЛЬТАТЫ</div>
+          <div id="search-results-list"></div>
+        </div>
+        <div class="section-label">ДРУЗЬЯ <span id="friends-count">0</span></div>
+        <div id="friends-list"><div class="empty-state"><div class="empty-text">ПОКА НИКОГО</div></div></div>
+      </div>
+
+      <!-- PROFILE TAB -->
+      <div class="tab-content" id="tab-profile">
+        <div class="profile-header">
+          <div class="profile-avatar-wrap">
+            <div class="profile-avatar" id="profile-avatar">?</div>
+            <div class="profile-avatar-img" id="profile-avatar-img" style="display:none"></div>
+            <button class="avatar-edit-btn" id="btn-edit-avatar">✎</button>
+            <input type="file" id="profile-avatar-input" accept="image/*" style="display:none" />
+          </div>
+          <div class="profile-info">
+            <div class="profile-name" id="profile-name">—</div>
+            
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-val">0</div><div class="stat-key">ЧАСОВ</div></div>
+          <div class="stat-card"><div class="stat-val" id="stat-friends">0</div><div class="stat-key">ДРУЗЕЙ</div></div>
+          <div class="stat-card"><div class="stat-val">0</div><div class="stat-key">КОМНАТ</div></div>
+          <div class="stat-card"><div class="stat-val">0</div><div class="stat-key">ПРОСМОТРОВ</div></div>
+        </div>
+        <div class="section-label">НАСТРОЙКИ</div>
+        <div class="settings-list">
+          <div class="settings-item" id="settings-account-item"><span class="si-icon">⚙</span><span class="si-label">Настройки аккаунта</span><span class="si-arrow">→</span></div>
+          <div class="settings-item" id="btn-logout-item"><span class="si-icon">⊣</span><span class="si-label">Выйти</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ROOM -->
+  <div id="screen-room" class="screen">
+    <div class="room-topbar">
+      <button class="tb-icon-btn" id="btn-leave-room">✕</button>
+      <div class="room-topbar-center">
+        <div class="wordmark-wrap sm"><span class="wordmark-text">OUTRO</span><div class="wordmark-line"></div></div>
+      </div>
+      <div class="room-topbar-actions">
+        <button class="tb-icon-btn" id="btn-change-video" title="Сменить видео">⇄</button>
+        <button class="tb-icon-btn" id="btn-screenshare" title="Screen Share">⊡</button>
+        <button class="tb-icon-btn" id="btn-participants" title="Участники">⁋ <span id="participants-count">0</span></button>
+        <button class="tb-icon-btn" id="btn-invite" title="Пригласить">⊕</button>
+        <button class="tb-icon-btn danger" id="btn-delete-room" title="Удалить комнату" style="display:none">🗑</button>
+      </div>
+    </div>
+
+    <div class="room-body">
+      <!-- VIEWER -->
+      <div class="room-viewer">
+        <div class="browser-bar" id="browser-bar" style="display:none">
+          <button class="tb-icon-btn sm" id="btn-browser-back">←</button>
+          <button class="tb-icon-btn sm" id="btn-browser-forward">→</button>
+          <button class="tb-icon-btn sm" id="btn-browser-refresh">↺</button>
+          <div class="browser-addr-wrap">
+            <input type="text" id="browser-address" placeholder="Введи URL или поисковый запрос..." />
+          </div>
+          <button class="btn-primary-sm" id="btn-browser-go">GO</button>
+        </div>
+        <div class="viewer-area" id="viewer-area">
+          <div class="viewer-placeholder" id="viewer-placeholder">
+            <div class="vp-icon">▶</div>
+            <div class="vp-text">НЕТ ВИДЕО</div>
+            <div class="vp-sub">НАЖМИ ⇄ ЧТОБЫ ДОБАВИТЬ</div>
+          </div>
+          <webview id="main-webview" style="display:none;width:100%;height:100%;" allowpopups partition="persist:main"></webview>
+          <webview id="browser-webview" style="display:none;width:100%;height:100%;" src="https://www.google.com" allowpopups partition="persist:browser"></webview>
+        </div>
+        <div class="player-controls" id="player-controls" style="display:none">
+          <div class="pc-title" id="room-video-title"></div>
+          <button class="btn-play-pause" id="btn-play-pause">▶ ИГРАТЬ</button>
+        </div>
+      </div>
+
+      <!-- CHAT -->
+      <div class="room-chat">
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input-row">
+          <button class="chat-attach-btn" id="btn-send-image" title="Фото">▨</button>
+          <input type="text" class="chat-input" id="chat-input" placeholder="Написать..." />
+          <button class="chat-send-btn" id="btn-send">➤</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL OVERLAY -->
+  <div class="modal-overlay" id="modal-overlay" style="display:none">
+
+    <!-- YT SEARCH -->
+    <div class="modal modal-wide" id="modal-yt-search" style="display:none">
+      <div class="modal-header">
+        <button class="tb-icon-btn" id="btn-back-from-yt">←</button>
+        <div class="search-bar" style="flex:1;margin:0 10px">
+          <span class="search-icon">⊙</span>
+          <input type="text" id="yt-search-input" placeholder="Поиск на YouTube..." />
+          <button class="tb-icon-btn" id="btn-clear-yt" style="display:none">✕</button>
+        </div>
+        <button class="btn-primary-sm" id="btn-do-yt-search">НАЙТИ</button>
+      </div>
+      <div class="modal-body" id="yt-search-results">
+        <div class="empty-state"><div class="empty-text">ВВЕДИТЕ ЗАПРОС</div></div>
+      </div>
+    </div>
+
+    <!-- CHANGE VIDEO -->
+    <div class="modal modal-wide" id="modal-change-video" style="display:none">
+      <div class="modal-header">
+        <span class="modal-title">СМЕНИТЬ ВИДЕО</span>
+        <button class="tb-icon-btn modal-close" data-modal="modal-change-video">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="source-tabs" id="change-source-tabs">
+          <button class="source-tab active" data-source="youtube">YOUTUBE</button>
+          <button class="source-tab" data-source="twitch">TWITCH</button>
+          <button class="source-tab" data-source="browser">БРАУЗЕР</button>
+          <button class="source-tab" data-source="file">ФАЙЛ</button>
+        </div>
+        <div id="change-yt-section">
+          <div class="search-bar" style="margin:12px 0">
+            <span class="search-icon">⊙</span>
+            <input type="text" id="change-yt-input" placeholder="Поиск YouTube..." />
+          </div>
+          <button class="btn-primary-sm" id="btn-change-yt-search">НАЙТИ</button>
+          <div id="change-yt-results" style="margin-top:12px;max-height:280px;overflow-y:auto"></div>
+        </div>
+        <div id="change-link-section" style="display:none">
+          <div class="section-label" id="change-link-label" style="margin-top:12px">ССЫЛКА</div>
+          <input class="field" id="change-link-input" placeholder="https://..." style="margin-top:8px" />
+          <button class="btn-primary" id="btn-apply-link" style="margin-top:10px">ПРИМЕНИТЬ</button>
+        </div>
+        <div id="change-browser-section" style="display:none">
+          <div style="padding:16px 0;color:var(--fg3);font-family:var(--mono);font-size:11px;letter-spacing:1px">ОТКРОЕТ ВСТРОЕННЫЙ БРАУЗЕР ДЛЯ ВСЕХ</div>
+          <button class="btn-primary" id="btn-apply-browser">ОТКРЫТЬ БРАУЗЕР</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PARTICIPANTS -->
+    <div class="modal" id="modal-participants" style="display:none">
+      <div class="modal-header">
+        <span class="modal-title">УЧАСТНИКИ · <span id="modal-parts-count">0</span></span>
+        <button class="tb-icon-btn modal-close" data-modal="modal-participants">✕</button>
+      </div>
+      <div class="modal-body" id="modal-parts-list"></div>
+    </div>
+
+    <!-- INVITE -->
+    <div class="modal" id="modal-invite" style="display:none">
+      <div class="modal-header">
+        <span class="modal-title">ПРИГЛАСИТЬ</span>
+        <button class="tb-icon-btn modal-close" data-modal="modal-invite">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="invite-box">
+          <div class="section-label">ССЫЛКА НА ВЕБ-ВЕРСИЮ</div>
+          <div class="invite-link">outro-web-znla.vercel.app</div>
+        </div>
+        <button class="btn-primary" id="btn-copy-invite">КОПИРОВАТЬ</button>
+      </div>
+    </div>
+
+    <!-- SCREENSHARE -->
+    <div class="modal modal-wide" id="modal-screenshare" style="display:none">
+      <div class="modal-header">
+        <span class="modal-title">ВЫБЕРИ ИСТОЧНИК</span>
+        <button class="tb-icon-btn modal-close" data-modal="modal-screenshare">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="ss-sources" class="ss-grid"></div>
+      </div>
+    </div>
+
+    <!-- ACCOUNT -->
+    <div class="modal" id="modal-account" style="display:none">
+      <div class="modal-header">
+        <span class="modal-title">АККАУНТ</span>
+        <button class="tb-icon-btn modal-close" data-modal="modal-account">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="section-label">НИК</div>
+        <input class="field" id="account-name-input" placeholder="Новый ник" style="margin-top:8px" />
+        <button class="btn-primary" id="btn-save-name" style="margin-top:8px">СОХРАНИТЬ НИК</button>
+        <div class="section-label" style="margin-top:20px">СМЕНИТЬ ПАРОЛЬ</div>
+        <input class="field" id="account-pwd-input" type="password" placeholder="Новый пароль (мин. 6 символов)" style="margin-top:8px" />
+        <button class="btn-primary" id="btn-save-pwd" style="margin-top:8px">СОХРАНИТЬ ПАРОЛЬ</button>
+      </div>
+    </div>
+
+    <!-- FRIEND PROFILE -->
+    <div class="modal" id="modal-friend-profile" style="display:none">
+      <div class="modal-header">
+        <span class="modal-title">ПРОФИЛЬ</span>
+        <button class="tb-icon-btn modal-close" data-modal="modal-friend-profile">✕</button>
+      </div>
+      <div class="modal-body" style="text-align:center;padding-top:16px">
+        <div class="fp-avatar-wrap">
+          <div class="fp-avatar" id="fp-avatar">?</div>
+          <div class="fp-avatar-img" id="fp-avatar-img" style="display:none"></div>
+        </div>
+        <div class="fp-name" id="fp-name">—</div>
+        
+        <button class="btn-primary" id="btn-add-friend" style="margin-top:24px">ДОБАВИТЬ В ДРУЗЬЯ</button>
+        <div id="fp-already" style="display:none;color:var(--fg3);font-family:var(--mono);font-size:11px;letter-spacing:2px;margin-top:16px">УЖЕ В ДРУЗЬЯХ</div>
+      </div>
+    </div>
+
+    <!-- CREATE ROOM (quick from platform btn) -->
+    <div class="modal" id="modal-quick-create" style="display:none">
+      <div class="modal-header">
+        <span class="modal-title" id="quick-create-title">НОВАЯ КОМНАТА</span>
+        <button class="tb-icon-btn modal-close" data-modal="modal-quick-create">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="section-label">НАЗВАНИЕ</div>
+        <input class="field" id="quick-title-input" placeholder="Название комнаты..." style="margin-top:8px" />
+        <div id="quick-link-section" style="display:none;margin-top:16px">
+          <div class="section-label" id="quick-link-label">ССЫЛКА</div>
+          <input class="field" id="quick-link-input" placeholder="https://..." style="margin-top:8px" />
+        </div>
+        <div class="section-label" style="margin-top:16px">ПРИВАТНОСТЬ</div>
+        <div class="privacy-tabs" style="margin-top:8px">
+          <button class="privacy-tab active" data-privacy="public">ПУБЛИЧНАЯ</button>
+          <button class="privacy-tab" data-privacy="friends">ДРУЗЬЯ</button>
+          <button class="privacy-tab" data-privacy="private">ПРИВАТНАЯ</button>
+        </div>
+        <button class="btn-primary" id="btn-do-quick-create" style="margin-top:20px">СОЗДАТЬ →</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
